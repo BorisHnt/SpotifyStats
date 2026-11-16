@@ -600,7 +600,6 @@
     $('raceCount').value='10';
     $('raceCountLabel').textContent='TOP 10 CUMULÉ';
     $('raceInner').style.height='570px';
-    $('raceRows').scrollTop=0;
     $('seekRace').max=String(Math.max(0,state.model.days.length-1));$('seekRace').value='0';
     $('raceInner').innerHTML='';
     const days=state.model.days.length;
@@ -625,6 +624,9 @@
       const av=aMap.get(id)??bMap.get(id)??0,bv=bMap.get(id)??av;
       return [id,av+(bv-av)*alpha];
     }).sort((x,y)=>y[1]-x[1] || x[0]-y[0]).slice(0,state.raceCount);
+    // La liste occupe sa vraie hauteur dans la page : les rangs 12 à 100
+    // ne sont plus masqués dans un viewport interne de 570 px.
+    $('raceInner').style.height=Math.max(570,top.length*52+12)+'px';
     const max=Math.max(1,top[0]?.[1]||1),all=new Set(top.map(x=>x[0]));
     const root=$('raceInner');
     for(const [id,el] of state.raceElements){
@@ -641,7 +643,7 @@
       el.classList.remove('out');el.classList.toggle('first',pos===0);el.style.setProperty('--y',(pos*52)+'px');el.querySelector('.r-rank').textContent=String(pos+1);el.querySelector('.r-fill').style.width=(value/max*100).toFixed(2)+'%';el.querySelector('.r-value').textContent=fmt(value/60000)+' min';
     });
     $('raceDate').textContent=prettify(a.date);
-    $('raceDays').textContent=`Jour ${fmt(i+1)} sur ${fmt(m.days.length)} · ${fmt(m.raceContendersByLimit[state.raceCount].size)} artistes passés dans le top ${state.raceCount}`;
+    $('raceDays').textContent=`Jour ${fmt(i+1)} sur ${fmt(m.days.length)} · ${top.length}/${state.raceCount} artistes affichés · ${fmt(m.raceContendersByLimit[state.raceCount].size)} artistes passés dans le top ${state.raceCount}`;
     $('raceTotal').textContent=duration(a.totalMs+(b.totalMs-a.totalMs)*alpha);
     $('seekRace').value=String(i);
     const remain=Math.max(0,(m.days.length-1-state.raceDay)/state.speed);
@@ -692,8 +694,6 @@
     if(!state.model)return;
     state.raceCount=Number(e.target.value)||10;
     $('raceCountLabel').textContent=`TOP ${state.raceCount} CUMULÉ`;
-    $('raceInner').style.height=Math.max(570,state.raceCount*52+12)+'px';
-    $('raceRows').scrollTop=0;
     renderRace();
   });
   $('seekRace').addEventListener('input',e=>{stopRace();state.raceDay=Number(e.target.value)||0;renderRace();});

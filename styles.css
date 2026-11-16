@@ -23,10 +23,9 @@
 @media(prefers-reduced-motion:reduce){.line-led,.line-leader-flash{animation:none}.line-rank,.line-rank-bar span{transition:none}}
 
 /* Course chronologique : classements étendus sans agrandir toute la page. */
-.race-rows{overflow-y:auto;overflow-x:hidden;scrollbar-color:#547267 #17282d;scrollbar-width:thin;overscroll-behavior:contain;}
-.race-inner{position:relative;min-width:0;height:570px;}
-.race-rows:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;}
-@media(max-width:760px){.race-inner{min-height:510px;}}
+.race-rows{height:auto;min-height:570px;overflow:visible;}
+.race-inner{position:relative;min-width:0;min-height:570px;height:570px;}
+@media(max-width:760px){.race-rows{min-height:510px;}.race-inner{min-height:510px;}}
 /* Maintenir la frise à l'intérieur de la grille, même avec 426 semaines de SVG. */
 .timeline-panel,.plot-layout,.chart-scroller{min-width:0;max-width:100%;}
 .chart-scroller{width:100%;}

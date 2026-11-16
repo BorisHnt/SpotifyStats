@@ -34,7 +34,7 @@ L'historique étendu peut contenir beaucoup de données sensibles. **Ne l'ajoute
 - Focus sur un artiste, classements annuels et recherche de titres.
 - **Course de courbes animée** : les artistes du top 10 changent au fil des semaines, en mode « Par semaine » ou « Cumul depuis le début ». Caméra glissante sur ~6 mois, top 10 dynamique, focus artiste, lecture/pause, seek et vitesses 15/30/60/120 jours/seconde.
 - Frise défilable de gauche à droite pour les **10 artistes les plus écoutés sur la totalité de l'historique**, avec **minutes par semaine**.
-- Course chronologique **jour par jour** : Top 10, 20, 50 ou 100 artistes, avec classement vertical défilable. Vitesse 15, 30, 60 ou 120 jours/seconde (30 par défaut), pause, reprise et curseur temporel.
+- Course chronologique **jour par jour** : Top 10, 20, 50 ou 100 artistes, avec liste complète qui s'agrandit selon les artistes présents (défilement de la page, sans zone intérieure limitée à 11 rangs). Vitesse 15, 30, 60 ou 120 jours/seconde (30 par défaut), pause, reprise et curseur temporel.
 - Course de courbes hebdomadaire en mode **semaine** ou **cumul**, avec axe vertical interpolé en douceur et traits fins pour éviter les sauts de zoom.
 - Export CSV des morceaux sur la période sélectionnée.
 
