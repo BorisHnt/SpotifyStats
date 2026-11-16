@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#0b1116">
+  <meta name="description" content="Analyse privée et locale des historiques Spotify. Importe ton ZIP et explore tes écoutes, la chronologie hebdomadaire et le top 10 animé.">
+  <title>Listening Atlas — Ton Spotify, en détail</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="vendor/jszip.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+  <header class="site-header wrap">
+    <a class="brand" href="#accueil" aria-label="Listening Atlas, accueil"><span class="brand-mark">◖◗</span><span>LISTENING <strong>ATLAS</strong></span></a>
+    <div class="header-right"><span class="local-badge"><span class="status-dot"></span> Analyse 100 % locale</span><button id="reimportBtn" class="button button-subtle" hidden>Changer d'archive</button><a class="help-link" href="#mode-emploi">Comment ça marche ?</a></div>
+  </header>
+  <main class="wrap" id="accueil">
+    <section class="hero" aria-labelledby="heroTitle">
+      <div class="eyebrow"><span class="spark">✳</span> TON HISTOIRE MUSICALE, SANS WRAPPED</div>
+      <h1 id="heroTitle">Chaque écoute<br><em>raconte quelque chose.</em></h1>
+      <p>Huit ans, dix ans, toute une vie sur Spotify ? Dépose ton export et découvre les artistes, les morceaux et les habitudes qui ont traversé tes années.</p>
+      <div id="uploadZone" class="upload-zone" role="button" tabindex="0" aria-label="Importer une archive ZIP Spotify">
+        <div class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V3m0 0L7 8m5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></div>
+        <div class="upload-text"><strong>Glisse ton archive Spotify ici</strong><span>ou clique pour choisir ton fichier .zip · Historique étendu ou standard</span></div>
+        <span class="button button-primary">Importer un ZIP <span aria-hidden="true">↗</span></span>
+      </div>
+      <input id="fileInput" type="file" accept=".zip,application/zip" hidden aria-label="Choisir une archive Spotify">
+      <div class="upload-status" id="uploadStatus" role="status" aria-live="polite"><span id="statusText">Aucune donnée chargée. Rien n'est envoyé sur Internet.</span><div id="progressWrap" class="progress-wrap" hidden><span id="progressBar"></span></div></div>
+      <p class="hero-note">Aucun compte à connecter. Pas d'API, pas de backend, pas de cookies : le ZIP reste dans ton navigateur, et disparaît lorsque tu fermes la page.</p>
+    </section>
+    <section id="emptyState" class="empty-state" aria-label="Fonctionnalités disponibles">
+      <div class="feature"><span class="feature-icon">01</span><h3>Le panorama</h3><p>Heures, artistes, titres, tendances et habitudes d'écoute, année par année.</p></div>
+      <div class="feature"><span class="feature-icon">02</span><h3>La frise infinie</h3><p>Les 10 artistes les plus écoutés, semaine après semaine. Navigation horizontale.</p></div>
+      <div class="feature"><span class="feature-icon">03</span><h3>La course du temps</h3><p>Un top 10 qui évolue quotidiennement avec les minutes cumulées. 30 jours/seconde.</p></div>
+    </section>
+
+    <div id="dashboard" hidden>
+      <nav class="dash-nav" aria-label="Sections du tableau de bord">
+        <a href="#vue-ensemble" class="nav-link active">Vue d'ensemble</a>
+        <a href="#classements" class="nav-link">Classements</a>
+        <a href="#habitudes" class="nav-link">Habitudes</a>
+        <a href="#frise" class="nav-link">Frise hebdomadaire</a>
+        <a href="#course" class="nav-link">Course animée</a>
+        <a href="#explorateur" class="nav-link">Explorateur</a>
+      </nav>
+
+      <section id="vue-ensemble" class="section">
+        <div class="section-heading"><div><span class="eyebrow">01 — PANORAMA</span><h2>Ta musique, en chiffres.</h2><p id="dateRange">—</p></div><div class="section-actions"><label for="yearSelect">Période</label><select id="yearSelect"><option value="all">Toute la période</option></select><button id="csvBtn" class="button button-subtle">Exporter CSV ↗</button></div></div>
+        <div class="metrics" id="metrics"></div>
+        <div class="double-grid">
+          <article class="panel"><div class="panel-title"><h3>Évolution annuelle</h3><small>Minutes de musique par année</small></div><div id="yearsChart" class="svg-chart"></div></article>
+          <article class="panel"><div class="panel-title"><h3>Au fil des mois</h3><small id="monthlyDescription">Durée musicale écoutée</small></div><div id="monthsChart" class="svg-chart"></div></article>
+        </div>
+      </section>
+
+      <section id="classements" class="section">
+        <div class="section-heading"><div><span class="eyebrow">02 — PALMARÈS</span><h2>Ce qui est resté.</h2><p>Classements calculés à partir des durées de lecture réelles, pas des estimations Spotify.</p></div><div class="toggle" id="metricToggle"><button type="button" data-metric="ms" class="selected">Durée</button><button type="button" data-metric="plays">Écoutes ≥ 30 s</button></div></div>
+        <div class="double-grid">
+          <article class="panel"><div class="panel-title"><h3>Top artistes</h3><small id="topArtistsSub">—</small></div><div class="rank-list" id="topArtists"></div></article>
+          <article class="panel"><div class="panel-title"><h3>Top morceaux</h3><small id="topTracksSub">—</small></div><div class="rank-list" id="topTracks"></div></article>
+        </div>
+        <article class="panel spotlight" id="spotlightPanel"><div class="section-heading tight"><div><span class="eyebrow">FOCUS ARTISTE</span><h3 id="spotlightTitle">Artiste à la loupe</h3><p id="spotlightIntro">—</p></div><div class="section-actions"><label for="spotlightSelect">Choisir</label><select id="spotlightSelect" aria-label="Artiste à analyser"></select></div></div><div id="spotlightStats" class="mini-stats"></div><div class="double-grid"><div><h4>Évolution dans le temps</h4><div class="svg-chart" id="spotlightChart"></div></div><div><h4>Ses morceaux les plus écoutés</h4><div id="spotlightTracks" class="rank-list compact"></div></div></div></article>
+      </section>
+
+      <section id="habitudes" class="section">
+        <div class="section-heading"><div><span class="eyebrow">03 — RYTHMES</span><h2>Quand la musique prend sa place.</h2><p>Répartition des minutes par heure et jour de la semaine, en heure de Paris.</p></div></div>
+        <div class="double-grid"><article class="panel"><div class="panel-title"><h3>Horloge des écoutes</h3><small>Minutes par heure</small></div><div id="hoursChart" class="svg-chart"></div></article><article class="panel"><div class="panel-title"><h3>Jour × heure</h3><small>Intensité de tes écoutes</small></div><div id="heatmap"></div></article></div>
+        <article class="panel year-winners"><div class="panel-title"><h3>Le numéro 1 de chaque année</h3><small>Artiste ayant le plus de minutes d'écoute sur l'année</small></div><div id="yearWinners" class="winner-grid"></div></article>
+      </section>
+
+      <section id="frise" class="section">
+        <div class="section-heading"><div><span class="eyebrow">04 — DANS LE TEMPS</span><h2>La frise hebdomadaire.</h2><p>Les 10 artistes les plus écoutés sur l'ensemble de l'archive. Chaque point représente les minutes écoutées durant une semaine, du lundi au dimanche.</p></div><div class="section-actions"><button id="chartStart" class="button button-subtle" title="Revenir au début">← Début</button><select id="chartYears" aria-label="Naviguer vers une année"></select><button id="chartEnd" class="button button-subtle" title="Aller à la fin">Fin →</button></div></div>
+        <article class="panel timeline-panel"><div class="legend" id="legend"></div><div class="chart-heading"><small>Cliquer sur un artiste pour isoler sa courbe · Glisser ou défiler horizontalement</small><strong id="currentWeek">—</strong></div><div class="plot-layout"><div class="fixed-axis" id="fixedAxis"></div><div class="chart-scroller" id="chartScroller" tabindex="0" aria-label="Graphique chronologique défilable horizontalement"><svg id="weeklyChart" height="410" role="img" aria-label="Minutes écoutées par semaine pour les dix artistes dominants"></svg><div class="chart-tooltip" id="weeklyTip" hidden></div></div></div><div class="timeline-foot"><small id="weeksLabel">—</small><small>Défilement horizontal ← →</small></div><div class="overview-track" id="overviewTrack" role="slider" aria-label="Naviguer dans la frise" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0"><div class="overview-progress" id="overviewProgress"></div><div class="overview-thumb" id="overviewThumb"></div></div></article>
+      </section>
+
+      <section id="course" class="section">
+        <div class="section-heading"><div><span class="eyebrow">05 — COURSE DU TEMPS</span><h2>Les artistes prennent la tête.</h2><p>Un classement cumulatif qui évolue jour après jour. Tous les artistes peuvent entrer dans le top 10, pas seulement ceux de la frise.</p></div><div class="section-actions"><label for="speedSelect">Vitesse</label><select id="speedSelect"><option value="15">15 jours / s</option><option value="30" selected>30 jours / s</option><option value="60">60 jours / s</option><option value="120">120 jours / s</option></select></div></div>
+        <article class="panel race-panel"><div class="race-header"><div><span class="eyebrow">TOP 10 CUMULÉ</span><h3 id="raceDate">—</h3><small id="raceDays">—</small></div><div class="race-score"><span>Durée musicale cumulée</span><strong id="raceTotal">—</strong></div></div><div class="race-rows" id="raceRows" aria-live="off"></div><div class="race-controls"><button id="playRace" class="button button-primary" aria-label="Lire l'animation">▶ Lire</button><button id="resetRace" class="button button-subtle">↺ Recommencer</button><input id="seekRace" type="range" min="0" max="1" step="1" value="0" aria-label="Choisir le jour de l'animation"><span id="raceRemaining" class="race-remaining">—</span></div><div class="race-note">La date progresse de 30 jours par seconde à vitesse normale. Le classement et les minutes évoluent quotidiennement, y compris les jours sans écoute.</div></article>
+      </section>
+
+      <section id="explorateur" class="section">
+        <div class="section-heading"><div><span class="eyebrow">06 — BIBLIOTHÈQUE</span><h2>Retrouver n'importe quel morceau.</h2><p>Recherche parmi tous les titres de l'historique, avec leur temps d'écoute réel.</p></div><div class="section-actions"><input id="search" class="search" type="search" placeholder="Titre, artiste, album…" aria-label="Rechercher un morceau"><label for="browseLimit">Afficher</label><select id="browseLimit"><option value="30">30 titres</option><option value="100">100 titres</option><option value="300">300 titres</option></select></div></div><article class="panel"><div class="browse-caption" id="browseCaption">—</div><div class="rank-list" id="browse"></div></article>
+      </section>
+    </div>
+
+    <section id="mode-emploi" class="help-section"><span class="eyebrow">MODE D'EMPLOI</span><h2>Trois clics, zéro serveur.</h2><div class="help-grid"><div><strong>01. Demande ton export</strong><p>Dans les paramètres de confidentialité de Spotify, demande l'« Historique d'écoute étendu ». L'export classique est également accepté, avec moins de détails.</p></div><div><strong>02. Importe le ZIP</strong><p>Dépose directement le fichier ZIP téléchargé. Pas besoin de le décompresser, ni de fournir une clé API.</p></div><div><strong>03. Explore librement</strong><p>Tous les calculs sont réalisés sur ton appareil. Le contenu original, notamment les adresses IP ou appareils, n'est ni affiché, ni sauvegardé, ni envoyé.</p></div></div></section>
+    <footer class="footer"><span>LISTENING ATLAS · 100 % statique, pour GitHub Pages</span><span>Non affilié à Spotify · Les durées correspondent aux lectures enregistrées, même incomplètes.</span></footer>
+  </main>
+</body>
+</html>
