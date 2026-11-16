@@ -26,7 +26,7 @@
   const parisParts = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/Paris', year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit', hourCycle:'h23'
   });
-  let state = {model:null,year:'all',metric:'ms',focusId:null,soloId:null,raceDay:0,racePlaying:false,raceLast:0,raceFrame:0,raceRenderAt:0,speed:30,chartDragging:false,lineMode:'week',linePos:0,linePlaying:false,lineFrame:0,lineLast:0,lineRenderAt:0,lineSpeed:30/7,linePinned:null,linePreviousLeader:null,lineSeries:new Map()};
+  let state = {model:null,year:'all',metric:'ms',focusId:null,soloId:null,raceDay:0,racePlaying:false,raceLast:0,raceFrame:0,raceRenderAt:0,speed:30,raceCount:10,raceElements:new Map(),chartDragging:false,lineMode:'week',linePos:0,linePlaying:false,lineFrame:0,lineLast:0,lineRenderAt:0,lineSpeed:30/7,linePinned:null,linePreviousLeader:null,lineSeries:new Map(),lineScale:null,lineScaleAt:0};
 
   function setStatus(message, mode = '', percent = null) {
     $('statusText').textContent = message;
@@ -182,7 +182,7 @@
       if (first===null || first>r.day) first=r.day;
       if (last===null || last<r.day) last=r.day;
     }
-    return {artists,tracks,yearly,global,artistMonths,weeklyMap,dailyMap,first,last,eventsCount:rows.length,days:[],weeks:[],weekStarts:[],topWeekly:[],weeklyAxis:0,raceContenders:new Set(),lineWeeks:[]};
+    return {artists,tracks,yearly,global,artistMonths,weeklyMap,dailyMap,first,last,eventsCount:rows.length,days:[],weeks:[],weekStarts:[],topWeekly:[],weeklyAxis:0,raceContendersByLimit:{10:new Set(),20:new Set(),50:new Set(),100:new Set()},lineWeeks:[]};
   }
   function prepareChronology(m) {
     const total = [...m.global.artists].sort((a,b)=>b[1].ms-a[1].ms || m.artists[a[0]].name.localeCompare(m.artists[b[0]].name));
@@ -209,8 +209,8 @@
     for (let d=m.first;d<=m.last;d=addDay(d,1)) {
       const dayEntries=m.dailyMap.get(d);
       if (dayEntries) for (const [id,ms] of dayEntries){cum.set(id,(cum.get(id)||0)+ms);totalMs+=ms;}
-      const top=[...cum].filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1] || m.artists[a[0]].name.localeCompare(m.artists[b[0]].name)).slice(0,10);
-      top.forEach(([id])=>m.raceContenders.add(id));
+      const top=[...cum].filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1] || m.artists[a[0]].name.localeCompare(m.artists[b[0]].name)).slice(0,100);
+      for(const limit of [10,20,50,100])top.slice(0,limit).forEach(([id])=>m.raceContendersByLimit[limit].add(id));
       m.days.push({date:d,top,totalMs});
     }
     // Les données dérivées suffisent : oublier les événements et noms de fichiers d'origine.
@@ -446,6 +446,7 @@
   }
   function initLineRace(){
     stopLineRace();state.linePos=0;state.lineMode='week';state.linePinned=null;state.linePreviousLeader=null;
+    state.lineScale=null;state.lineScaleAt=0;
     state.lineSeries.clear();$('lineRanks').innerHTML='';
     const n=state.model.lineWeeks.length;
     $('lineSeek').max=String(Math.max(0,n-1));$('lineSeek').value='0';
@@ -484,7 +485,8 @@
   }
   function linePosition(p){
     if(!state.model)return;
-    stopLineRace();state.linePos=clamp(p,0,state.model.lineWeeks.length-1);renderLineRace();
+    stopLineRace();state.linePos=clamp(p,0,state.model.lineWeeks.length-1);
+    state.lineScale=null;state.lineScaleAt=0;renderLineRace();
   }
   function renderLineRace(){
     if(!state.model)return;
@@ -497,18 +499,29 @@
     const lo=Math.max(0,Math.ceil(start)),hi=ix;
     const drawIds=[...ids];
     if(state.linePinned!==null&&!drawIds.includes(state.linePinned))drawIds.push(state.linePinned);
+    // Axe Y stable : inclut le maximum réel de la fenêtre (tous artistes), puis
+    // amortit les variations. La descente est plus lente pour éviter le pompage.
+    const field=state.lineMode==='cum'?'cumulativeTop':'weeklyTop';
     let observed=1;
-    for(const id of drawIds){
-      for(let i=lo;i<=hi;i++)observed=Math.max(observed,lineValue(id,i)/60000);
-      observed=Math.max(observed,lineValue(id,at)/60000);
+    for(let j=lo;j<=hi;j++)observed=Math.max(observed,(m.lineWeeks[j][field][0]?.[1]||0)/60000);
+    observed=Math.max(observed,(top[0]?.[1]||0)/60000);
+    const target=Math.max(2,observed*1.2);
+    const clock=performance.now();
+    if(!Number.isFinite(state.lineScale)||state.lineScale===null||!state.linePlaying){
+      state.lineScale=target;
+    }else{
+      const dt=clamp((clock-state.lineScaleAt)/1000,0,.12);
+      const tau=target>state.lineScale?.38:2.2;
+      state.lineScale+= (target-state.lineScale)*(1-Math.exp(-dt/tau));
     }
-    const max=niceCeil(observed*1.08);
+    state.lineScaleAt=clock;
+    const max=Math.max(1,state.lineScale);
     const yAt=v=>LINE_SVG.b-(v/60000/max)*plotH;
     let svg=`<defs><linearGradient id="lineFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#294840" stop-opacity=".4"/><stop offset="1" stop-color="#102027" stop-opacity=".08"/></linearGradient><clipPath id="lineClip"><rect x="${LINE_SVG.l}" y="${LINE_SVG.t}" width="${plotW}" height="${plotH}"/></clipPath></defs>`;
     svg+=`<rect x="${LINE_SVG.l}" y="${LINE_SVG.t}" width="${plotW}" height="${plotH}" rx="12" fill="url(#lineFill)"/>`;
     for(let k=0;k<=4;k++){
       const v=max*k/4,y=LINE_SVG.b-k/4*plotH;
-      svg+=`<line x1="${LINE_SVG.l}" y1="${y}" x2="${LINE_SVG.w-LINE_SVG.r}" y2="${y}" stroke="#3b5658" stroke-opacity="${k===0?.8:.42}" stroke-dasharray="${k?'5 9':'none'}"/><text x="${LINE_SVG.l-12}" y="${y+4}" text-anchor="end" fill="#95b7b9" font-size="12" font-family="ui-monospace,monospace">${fmt(v)}</text>`;
+      svg+=`<line x1="${LINE_SVG.l}" y1="${y}" x2="${LINE_SVG.w-LINE_SVG.r}" y2="${y}" stroke="#3b5658" stroke-opacity="${k===0?.8:.42}" stroke-dasharray="${k?'5 9':'none'}"/><text x="${LINE_SVG.l-12}" y="${y+4}" text-anchor="end" fill="#95b7b9" font-size="12" font-family="ui-monospace,monospace">${fmt(v,v<10?1:0)}</text>`;
     }
     for(let j=lo;j<=Math.min(m.lineWeeks.length-1,Math.floor(at));j++){
       const month=m.weekStarts[j].slice(0,7),before=j?m.weekStarts[j-1].slice(0,7):'';
@@ -533,10 +546,10 @@
       }
       if(at>hi+.001 || !path)path+=(path?'L':'M')+xAt(at).toFixed(2)+','+yAt(lineValue(id,at)).toFixed(2);
       const cv=lineValue(id,at),cx=xAt(at),cy=yAt(cv);
-      const stroke=pinned?4.6:2.7;
-      svg+=`<path d="${path.trim()}" fill="none" stroke="${color}" stroke-opacity="${fade?.14:.22}" stroke-width="${stroke+7}" stroke-linecap="round" stroke-linejoin="round"/>`;
-      svg+=`<path d="${path.trim()}" fill="none" stroke="${color}" stroke-opacity="${fade?.3:.93}" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round"/>`;
-      svg+=`<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${pinned?7:5}" fill="${color}" fill-opacity="${fade?.3:1}" stroke="#122027" stroke-width="2"/>`;
+      const stroke=pinned?2.25:1.45;
+      svg+=`<path d="${path.trim()}" fill="none" stroke="${color}" stroke-opacity="${fade?.06:.12}" stroke-width="${stroke+3.1}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      svg+=`<path d="${path.trim()}" fill="none" stroke="${color}" stroke-opacity="${fade?.25:.88}" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      svg+=`<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${pinned?4.6:3.1}" fill="${color}" fill-opacity="${fade?.3:1}" stroke="#122027" stroke-width="1.3"/>`;
     }
     svg+='</g>';
     $('lineRaceChart').innerHTML=svg;
@@ -583,9 +596,13 @@
   }
 
   function initRace() {
-    stopRace();state.raceDay=0;
+    stopRace();state.raceDay=0;state.raceCount=10;state.raceElements.clear();
+    $('raceCount').value='10';
+    $('raceCountLabel').textContent='TOP 10 CUMULÉ';
+    $('raceInner').style.height='570px';
+    $('raceRows').scrollTop=0;
     $('seekRace').max=String(Math.max(0,state.model.days.length-1));$('seekRace').value='0';
-    $('raceRows').innerHTML='';
+    $('raceInner').innerHTML='';
     const days=state.model.days.length;
     $('raceRemaining').textContent=`${fmt(days/30,0)} s à 30 jours/s`;
     renderRace();
@@ -607,17 +624,24 @@
     const top=[...candidates].map(id=>{
       const av=aMap.get(id)??bMap.get(id)??0,bv=bMap.get(id)??av;
       return [id,av+(bv-av)*alpha];
-    }).sort((x,y)=>y[1]-x[1] || x[0]-y[0]).slice(0,10);
+    }).sort((x,y)=>y[1]-x[1] || x[0]-y[0]).slice(0,state.raceCount);
     const max=Math.max(1,top[0]?.[1]||1),all=new Set(top.map(x=>x[0]));
-    const root=$('raceRows');
-    for(const el of root.children) if(!all.has(Number(el.dataset.id)))el.classList.add('out');
+    const root=$('raceInner');
+    for(const [id,el] of state.raceElements){
+      if(all.has(id))continue;
+      el.classList.add('out');
+      if(!el.dataset.removing){
+        el.dataset.removing='1';
+        setTimeout(()=>{if(el.classList.contains('out')){el.remove();if(state.raceElements.get(id)===el)state.raceElements.delete(id);}else delete el.dataset.removing;},280);
+      }
+    }
     top.forEach(([id,value],pos)=>{
-      let el=root.querySelector(`.racer[data-id="${id}"]`);
-      if(!el){el=document.createElement('div');el.className='racer out';el.dataset.id=id;el.style.setProperty('--color',artistColor(id));el.innerHTML=`<div class="r-rank"></div><div class="r-name"><span class="r-dot"></span><span title="${esc(m.artists[id].name)}">${esc(m.artists[id].name)}</span></div><div class="r-track"><div class="r-fill"></div></div><div class="r-value"></div>`;root.append(el);}
+      let el=state.raceElements.get(id);
+      if(!el){el=document.createElement('div');el.className='racer out';el.dataset.id=id;el.style.setProperty('--color',artistColor(id));el.innerHTML=`<div class="r-rank"></div><div class="r-name"><span class="r-dot"></span><span title="${esc(m.artists[id].name)}">${esc(m.artists[id].name)}</span></div><div class="r-track"><div class="r-fill"></div></div><div class="r-value"></div>`;root.append(el);state.raceElements.set(id,el);}
       el.classList.remove('out');el.classList.toggle('first',pos===0);el.style.setProperty('--y',(pos*52)+'px');el.querySelector('.r-rank').textContent=String(pos+1);el.querySelector('.r-fill').style.width=(value/max*100).toFixed(2)+'%';el.querySelector('.r-value').textContent=fmt(value/60000)+' min';
     });
     $('raceDate').textContent=prettify(a.date);
-    $('raceDays').textContent=`Jour ${fmt(i+1)} sur ${fmt(m.days.length)} · ${fmt(m.raceContenders.size)} artistes passés dans le top 10`;
+    $('raceDays').textContent=`Jour ${fmt(i+1)} sur ${fmt(m.days.length)} · ${fmt(m.raceContendersByLimit[state.raceCount].size)} artistes passés dans le top ${state.raceCount}`;
     $('raceTotal').textContent=duration(a.totalMs+(b.totalMs-a.totalMs)*alpha);
     $('seekRace').value=String(i);
     const remain=Math.max(0,(m.days.length-1-state.raceDay)/state.speed);
@@ -657,13 +681,21 @@
   $('linePlay').addEventListener('click',toggleLineRace);
   $('lineRestart').addEventListener('click',()=>linePosition(0));
   $('lineToEnd').addEventListener('click',()=>linePosition(state.model?state.model.lineWeeks.length-1:0));
-  $('lineModeToggle').addEventListener('click',e=>{const b=e.target.closest('[data-line-mode]');if(!b||!state.model)return;state.lineMode=b.dataset.lineMode;state.linePreviousLeader=null;syncLineModes();renderLineRace();});
+  $('lineModeToggle').addEventListener('click',e=>{const b=e.target.closest('[data-line-mode]');if(!b||!state.model)return;state.lineMode=b.dataset.lineMode;state.linePreviousLeader=null;state.lineScale=null;state.lineScaleAt=0;syncLineModes();renderLineRace();});
   $('lineSpeed').addEventListener('change',e=>{state.lineSpeed=(Number(e.target.value)||30)/7;renderLineRace();});
   $('lineSeek').addEventListener('input',e=>linePosition(Number(e.target.value)||0));
   $('lineRanks').addEventListener('click',e=>{const b=e.target.closest('.line-rank');if(!b||!state.model)return;const id=Number(b.dataset.id);state.linePinned=state.linePinned===id?null:id;renderLineRace();});
   $('playRace').addEventListener('click',playRace);
   $('resetRace').addEventListener('click',()=>{stopRace();state.raceDay=0;renderRace();});
   $('speedSelect').addEventListener('change',e=>{state.speed=Number(e.target.value)||30;});
+  $('raceCount').addEventListener('change',e=>{
+    if(!state.model)return;
+    state.raceCount=Number(e.target.value)||10;
+    $('raceCountLabel').textContent=`TOP ${state.raceCount} CUMULÉ`;
+    $('raceInner').style.height=Math.max(570,state.raceCount*52+12)+'px';
+    $('raceRows').scrollTop=0;
+    renderRace();
+  });
   $('seekRace').addEventListener('input',e=>{stopRace();state.raceDay=Number(e.target.value)||0;renderRace();});
 
 })();

@@ -21,3 +21,12 @@
 @media(max-width:1080px){.line-studio-layout{grid-template-columns:minmax(0,1fr) 240px}.line-leaderboard{padding-left:10px}.line-rank{grid-template-columns:20px minmax(0,1fr) 65px}}
 @media(max-width:780px){.line-studio-head{padding:17px;align-items:start}.line-mode-toggle{width:100%}.line-mode-toggle button{flex:1;font-size:11px;white-space:normal}.line-studio-topline{padding:14px 17px}.line-headliner{max-width:50%}.line-studio-layout{grid-template-columns:1fr;padding:0 10px 10px}.line-stage svg{min-height:185px}.line-leaderboard{padding:16px 2px 4px}.line-ranks{height:452px}.line-studio-controls{padding:12px;gap:7px}.line-studio-controls .line-seek-label{display:none}.line-studio-controls input[type=range]{order:3;flex-basis:100%;width:100%}.line-studio-controls .line-speed-label{margin-left:auto}.line-studio-foot{padding:1px 14px 15px}.line-stage-caption{font-size:9px}.line-big-date{font-size:23px}}
 @media(prefers-reduced-motion:reduce){.line-led,.line-leader-flash{animation:none}.line-rank,.line-rank-bar span{transition:none}}
+
+/* Course chronologique : classements étendus sans agrandir toute la page. */
+.race-rows{overflow-y:auto;overflow-x:hidden;scrollbar-color:#547267 #17282d;scrollbar-width:thin;overscroll-behavior:contain;}
+.race-inner{position:relative;min-width:0;height:570px;}
+.race-rows:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;}
+@media(max-width:760px){.race-inner{min-height:510px;}}
+/* Maintenir la frise à l'intérieur de la grille, même avec 426 semaines de SVG. */
+.timeline-panel,.plot-layout,.chart-scroller{min-width:0;max-width:100%;}
+.chart-scroller{width:100%;}
