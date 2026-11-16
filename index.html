@@ -42,7 +42,7 @@
         <a href="#vue-ensemble" class="nav-link active">Vue d'ensemble</a>
         <a href="#classements" class="nav-link">Classements</a>
         <a href="#habitudes" class="nav-link">Habitudes</a>
-        <a href="#frise" class="nav-link">Frise hebdomadaire</a>
+        <a href="#frise" class="nav-link">Frise et animation</a>
         <a href="#course" class="nav-link">Course animée</a>
         <a href="#explorateur" class="nav-link">Explorateur</a>
       </nav>
@@ -73,6 +73,43 @@
 
       <section id="frise" class="section">
         <div class="section-heading"><div><span class="eyebrow">04 — DANS LE TEMPS</span><h2>La frise hebdomadaire.</h2><p>Les 10 artistes les plus écoutés sur l'ensemble de l'archive. Chaque point représente les minutes écoutées durant une semaine, du lundi au dimanche.</p></div><div class="section-actions"><button id="chartStart" class="button button-subtle" title="Revenir au début">← Début</button><select id="chartYears" aria-label="Naviguer vers une année"></select><button id="chartEnd" class="button button-subtle" title="Aller à la fin">Fin →</button></div></div>
+        <article class="panel line-studio" aria-label="Animation de la frise des artistes">
+          <div class="line-studio-head">
+            <div class="line-live-title"><span class="line-led" aria-hidden="true"></span><div><span class="eyebrow">COURSE DE COURBES · DIRECT</span><h3>Regarde les écoutes changer la donne.</h3></div></div>
+            <div class="line-mode-toggle" id="lineModeToggle" role="group" aria-label="Mode de calcul pour la frise animée">
+              <button type="button" class="selected" data-line-mode="week" aria-pressed="true">Par semaine</button>
+              <button type="button" data-line-mode="cum" aria-pressed="false">Cumul depuis le début</button>
+            </div>
+          </div>
+          <div class="line-studio-topline">
+            <div><span class="line-subtitle" id="lineWeekLabel">Semaine —</span><strong class="line-big-date" id="lineDate">—</strong></div>
+            <div class="line-headliner"><span id="lineLeaderLabel">EN TÊTE</span><strong id="lineLeader">—</strong><small id="lineLeaderValue">—</small></div>
+          </div>
+          <div class="line-studio-layout">
+            <div class="line-stage">
+              <div class="line-stage-grid"></div>
+              <svg id="lineRaceChart" viewBox="0 0 980 420" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Course de courbes animée du top 10 Spotify"></svg>
+              <div class="line-stage-caption"><span id="lineScaleLabel">Minutes par semaine</span><span>Fenêtre glissante d'environ 6 mois</span></div>
+            </div>
+            <div class="line-leaderboard">
+              <div class="line-leaderboard-title"><strong>TOP 10 EN DIRECT</strong><span id="lineRankingUnits">Minutes / semaine</span></div>
+              <div id="lineRanks" class="line-ranks" aria-live="off"></div>
+              <p class="line-board-help">Clique sur un artiste pour suivre sa courbe.</p>
+            </div>
+          </div>
+          <div class="line-studio-controls">
+            <button id="linePlay" class="button button-primary" type="button" aria-label="Lancer l'animation de la frise">▶ Animer</button>
+            <button id="lineRestart" class="button button-subtle" type="button" title="Recommencer depuis le début">↺ Début</button>
+            <label class="line-seek-label" for="lineSeek">Voyage temporel</label>
+            <input id="lineSeek" type="range" min="0" max="1" step="0.01" value="0" aria-label="Se déplacer dans la chronologie hebdomadaire">
+            <button id="lineToEnd" class="button button-subtle" type="button" title="Aller à la dernière semaine">Fin →</button>
+            <label class="line-speed-label" for="lineSpeed">Vitesse</label>
+            <select id="lineSpeed" aria-label="Vitesse de la frise animée"><option value="15">15 jours/s</option><option value="30" selected>30 jours/s</option><option value="60">60 jours/s</option><option value="120">120 jours/s</option></select>
+            <span id="lineRemaining" class="line-remaining">—</span>
+          </div>
+          <p class="line-studio-foot">Le top 10 se recalcule chaque semaine parmi <strong>tous</strong> les artistes. Les courbes défilent, les positions changent et le cumul révèle les remontées au fil des années. Les points intermédiaires sont interpolés pour fluidifier l'animation.</p>
+        </article>
+
         <article class="panel timeline-panel"><div class="legend" id="legend"></div><div class="chart-heading"><small>Cliquer sur un artiste pour isoler sa courbe · Glisser ou défiler horizontalement</small><strong id="currentWeek">—</strong></div><div class="plot-layout"><div class="fixed-axis" id="fixedAxis"></div><div class="chart-scroller" id="chartScroller" tabindex="0" aria-label="Graphique chronologique défilable horizontalement"><svg id="weeklyChart" height="410" role="img" aria-label="Minutes écoutées par semaine pour les dix artistes dominants"></svg><div class="chart-tooltip" id="weeklyTip" hidden></div></div></div><div class="timeline-foot"><small id="weeksLabel">—</small><small>Défilement horizontal ← →</small></div><div class="overview-track" id="overviewTrack" role="slider" aria-label="Naviguer dans la frise" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0"><div class="overview-progress" id="overviewProgress"></div><div class="overview-thumb" id="overviewThumb"></div></div></article>
       </section>
 

@@ -26,7 +26,7 @@
   const parisParts = new Intl.DateTimeFormat('en-GB', {
     timeZone: 'Europe/Paris', year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit', hourCycle:'h23'
   });
-  let state = {model:null,year:'all',metric:'ms',focusId:null,soloId:null,raceDay:0,racePlaying:false,raceLast:0,raceFrame:0,raceRenderAt:0,speed:30,chartDragging:false};
+  let state = {model:null,year:'all',metric:'ms',focusId:null,soloId:null,raceDay:0,racePlaying:false,raceLast:0,raceFrame:0,raceRenderAt:0,speed:30,chartDragging:false,lineMode:'week',linePos:0,linePlaying:false,lineFrame:0,lineLast:0,lineRenderAt:0,lineSpeed:30/7,linePinned:null,linePreviousLeader:null,lineSeries:new Map()};
 
   function setStatus(message, mode = '', percent = null) {
     $('statusText').textContent = message;
@@ -81,6 +81,7 @@
     if (!file) return;
     if (!/\.zip$/i.test(file.name)) {setStatus('Choisis un fichier .zip exporté par Spotify.', 'error');return;}
     stopRace();
+    stopLineRace();
     setStatus('Ouverture de l’archive…', '', 4);
     $('fileInput').value = '';
     try {
@@ -181,7 +182,7 @@
       if (first===null || first>r.day) first=r.day;
       if (last===null || last<r.day) last=r.day;
     }
-    return {artists,tracks,yearly,global,artistMonths,weeklyMap,dailyMap,first,last,eventsCount:rows.length,days:[],weeks:[],weekStarts:[],topWeekly:[],weeklyAxis:0,raceContenders:new Set()};
+    return {artists,tracks,yearly,global,artistMonths,weeklyMap,dailyMap,first,last,eventsCount:rows.length,days:[],weeks:[],weekStarts:[],topWeekly:[],weeklyAxis:0,raceContenders:new Set(),lineWeeks:[]};
   }
   function prepareChronology(m) {
     const total = [...m.global.artists].sort((a,b)=>b[1].ms-a[1].ms || m.artists[a[0]].name.localeCompare(m.artists[b[0]].name));
@@ -193,6 +194,14 @@
       const entries=m.weeklyMap.get(d)||new Map();
       const values=m.topWeekly.map(id=>{const v=(entries.get(id)||0)/60000;max=Math.max(max,v);return v;});
       m.weeks.push(values);
+      m.lineWeeks.push({date:d,weekly:entries,weeklyTop:[...entries].filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1] || a[0]-b[0]).slice(0,15),cumulativeTop:[]});
+    }
+    // Chaque semaine : un classement des minutes courantes ET un classement cumulatif.
+    // L'historique complet reste sous forme de cartes hebdomadaires légères, pas de données personnelles.
+    const weekRunning = new Map();
+    for (const wk of m.lineWeeks) {
+      for (const [id,ms] of wk.weekly) weekRunning.set(id,(weekRunning.get(id)||0)+ms);
+      wk.cumulativeTop=[...weekRunning].sort((a,b)=>b[1]-a[1] || a[0]-b[0]).slice(0,15);
     }
     m.weeklyAxis=niceCeil(max);
     const cum = new Map();
@@ -224,6 +233,7 @@
     renderDashboard();
     setupWeekly();
     initRace();
+    initLineRace();
     markNav();
   }
   const selectedSummary = () => state.year==='all'?state.model.global:state.model.yearly.get(state.year);
@@ -404,6 +414,174 @@
     $('weeklyChart').querySelectorAll('.weekly-line').forEach(el=>el.classList.toggle('faded',state.soloId!==null && Number(el.dataset.artistId)!==state.soloId));
   }
 
+
+  // --- Course de courbes : deux modes, un top 10 dynamique et une caméra mobile ---
+  // Toutes les données viennent du ZIP importé, aucun appel réseau.
+  const LINE_WINDOW=27;
+  const LINE_SVG={w:980,h:420,l:69,r:33,t:35,b:355};
+  function lineSeries(id){
+    let series=state.lineSeries.get(id);
+    if(series)return series;
+    const weeks=state.model.lineWeeks;
+    const weekly=new Float64Array(weeks.length),cumulative=new Float64Array(weeks.length);
+    let total=0;
+    for(let i=0;i<weeks.length;i++){
+      weekly[i]=weeks[i].weekly.get(id)||0;
+      total+=weekly[i];cumulative[i]=total;
+    }
+    series={weekly,cumulative};state.lineSeries.set(id,series);
+    return series;
+  }
+  function lineValue(id,at,mode=state.lineMode){
+    const values=mode==='cum'?lineSeries(id).cumulative:lineSeries(id).weekly;
+    const a=clamp(Math.floor(at),0,values.length-1),b=Math.min(a+1,values.length-1),blend=clamp(at-a,0,1);
+    return values[a]*(1-blend)+values[b]*blend;
+  }
+  function lineTop(at){
+    const m=state.model,i=clamp(Math.floor(at),0,m.lineWeeks.length-1),j=Math.min(i+1,m.lineWeeks.length-1);
+    const field=state.lineMode==='cum'?'cumulativeTop':'weeklyTop';
+    const candidates=new Set([...m.lineWeeks[i][field].map(([id])=>id),...m.lineWeeks[j][field].map(([id])=>id)]);
+    return [...candidates].map(id=>[id,lineValue(id,at)]).filter(([,v])=>v>0)
+      .sort((a,b)=>b[1]-a[1] || a[0]-b[0]).slice(0,10);
+  }
+  function initLineRace(){
+    stopLineRace();state.linePos=0;state.lineMode='week';state.linePinned=null;state.linePreviousLeader=null;
+    state.lineSeries.clear();$('lineRanks').innerHTML='';
+    const n=state.model.lineWeeks.length;
+    $('lineSeek').max=String(Math.max(0,n-1));$('lineSeek').value='0';
+    $('lineSpeed').value='30';state.lineSpeed=30/7;
+    syncLineModes();renderLineRace();
+  }
+  function stopLineRace(){
+    state.linePlaying=false;state.lineLast=0;
+    cancelAnimationFrame(state.lineFrame);
+    if($('linePlay')){$('linePlay').textContent='▶ Animer';$('linePlay').setAttribute('aria-label',"Lancer l'animation de la frise");}
+  }
+  function syncLineModes(){
+    $('lineModeToggle').querySelectorAll('[data-line-mode]').forEach(el=>{
+      const selected=el.dataset.lineMode===state.lineMode;
+      el.classList.toggle('selected',selected);el.setAttribute('aria-pressed',String(selected));
+    });
+    $('lineRankingUnits').textContent=state.lineMode==='cum'?'Minutes cumulées':'Minutes / semaine';
+    $('lineScaleLabel').textContent=state.lineMode==='cum'?'Minutes accumulées depuis le début':'Minutes écoutées pendant la semaine';
+  }
+  function toggleLineRace(){
+    if(!state.model)return;
+    if(state.linePlaying){stopLineRace();return;}
+    if(state.linePos>=state.model.lineWeeks.length-1)state.linePos=0;
+    state.linePlaying=true;state.lineLast=0;state.lineRenderAt=0;
+    $('linePlay').textContent='Ⅱ Pause';$('linePlay').setAttribute('aria-label',"Mettre en pause l'animation de la frise");
+    state.lineFrame=requestAnimationFrame(lineRaceTick);
+  }
+  function lineRaceTick(now){
+    if(!state.linePlaying)return;
+    if(state.lineLast)state.linePos+=Math.min((now-state.lineLast)/1000,.18)*state.lineSpeed;
+    state.lineLast=now;
+    const last=state.model.lineWeeks.length-1;
+    if(state.linePos>=last){state.linePos=last;renderLineRace();stopLineRace();return;}
+    if(now-state.lineRenderAt>=32){renderLineRace();state.lineRenderAt=now;}
+    state.lineFrame=requestAnimationFrame(lineRaceTick);
+  }
+  function linePosition(p){
+    if(!state.model)return;
+    stopLineRace();state.linePos=clamp(p,0,state.model.lineWeeks.length-1);renderLineRace();
+  }
+  function renderLineRace(){
+    if(!state.model)return;
+    const m=state.model,at=clamp(state.linePos,0,m.lineWeeks.length-1),ix=Math.floor(at);
+    const current=m.lineWeeks[ix],top=lineTop(at),ids=top.map(([id])=>id);
+    // La caméra suit les 27 dernières semaines, sauf au tout début où la courbe se dessine.
+    const start=Math.max(0,at-LINE_WINDOW+1);
+    const plotW=LINE_SVG.w-LINE_SVG.l-LINE_SVG.r,plotH=LINE_SVG.b-LINE_SVG.t;
+    const xAt=k=>LINE_SVG.l+(k-start)*plotW/(LINE_WINDOW-1);
+    const lo=Math.max(0,Math.ceil(start)),hi=ix;
+    const drawIds=[...ids];
+    if(state.linePinned!==null&&!drawIds.includes(state.linePinned))drawIds.push(state.linePinned);
+    let observed=1;
+    for(const id of drawIds){
+      for(let i=lo;i<=hi;i++)observed=Math.max(observed,lineValue(id,i)/60000);
+      observed=Math.max(observed,lineValue(id,at)/60000);
+    }
+    const max=niceCeil(observed*1.08);
+    const yAt=v=>LINE_SVG.b-(v/60000/max)*plotH;
+    let svg=`<defs><linearGradient id="lineFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#294840" stop-opacity=".4"/><stop offset="1" stop-color="#102027" stop-opacity=".08"/></linearGradient><clipPath id="lineClip"><rect x="${LINE_SVG.l}" y="${LINE_SVG.t}" width="${plotW}" height="${plotH}"/></clipPath></defs>`;
+    svg+=`<rect x="${LINE_SVG.l}" y="${LINE_SVG.t}" width="${plotW}" height="${plotH}" rx="12" fill="url(#lineFill)"/>`;
+    for(let k=0;k<=4;k++){
+      const v=max*k/4,y=LINE_SVG.b-k/4*plotH;
+      svg+=`<line x1="${LINE_SVG.l}" y1="${y}" x2="${LINE_SVG.w-LINE_SVG.r}" y2="${y}" stroke="#3b5658" stroke-opacity="${k===0?.8:.42}" stroke-dasharray="${k?'5 9':'none'}"/><text x="${LINE_SVG.l-12}" y="${y+4}" text-anchor="end" fill="#95b7b9" font-size="12" font-family="ui-monospace,monospace">${fmt(v)}</text>`;
+    }
+    for(let j=lo;j<=Math.min(m.lineWeeks.length-1,Math.floor(at));j++){
+      const month=m.weekStarts[j].slice(0,7),before=j?m.weekStarts[j-1].slice(0,7):'';
+      if(month!==before){
+        const x=xAt(j);if(x>=LINE_SVG.l+4&&x<LINE_SVG.w-LINE_SVG.r-20){
+          const monthLabel=new Date(dateUTC(m.weekStarts[j])).toLocaleDateString('fr-FR',{month:'short',year:'2-digit',timeZone:'UTC'});
+          svg+=`<line x1="${x}" y1="${LINE_SVG.t}" x2="${x}" y2="${LINE_SVG.b}" stroke="#9dbeae" stroke-opacity=".14"/><text x="${x+5}" y="${LINE_SVG.b+26}" fill="#a3bdb8" font-size="12">${esc(monthLabel)}</text>`;
+        }
+      }
+    }
+    const markerX=clamp(xAt(at),LINE_SVG.l,LINE_SVG.w-LINE_SVG.r);
+    svg+=`<line x1="${markerX.toFixed(2)}" y1="${LINE_SVG.t}" x2="${markerX.toFixed(2)}" y2="${LINE_SVG.b}" stroke="#d3ffb0" stroke-opacity=".45" stroke-width="1.5" stroke-dasharray="4 7"/>`;
+    // Les courbes hors focus sont derrière les courbes en tête. Le focus reste lumineux.
+    const ordered=[...drawIds].reverse().sort((a,b)=>(a===state.linePinned?1:0)-(b===state.linePinned?1:0));
+    svg+='<g clip-path="url(#lineClip)">';
+    for(const id of ordered){
+      const pinned=state.linePinned===id,fade=state.linePinned!==null&&!pinned;
+      const color=artistColor(id);
+      let path='';
+      for(let i=lo;i<=hi;i++){
+        path+=(path?'L':'M')+xAt(i).toFixed(2)+','+yAt(lineValue(id,i)).toFixed(2)+' ';
+      }
+      if(at>hi+.001 || !path)path+=(path?'L':'M')+xAt(at).toFixed(2)+','+yAt(lineValue(id,at)).toFixed(2);
+      const cv=lineValue(id,at),cx=xAt(at),cy=yAt(cv);
+      const stroke=pinned?4.6:2.7;
+      svg+=`<path d="${path.trim()}" fill="none" stroke="${color}" stroke-opacity="${fade?.14:.22}" stroke-width="${stroke+7}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      svg+=`<path d="${path.trim()}" fill="none" stroke="${color}" stroke-opacity="${fade?.3:.93}" stroke-width="${stroke}" stroke-linecap="round" stroke-linejoin="round"/>`;
+      svg+=`<circle cx="${cx.toFixed(2)}" cy="${cy.toFixed(2)}" r="${pinned?7:5}" fill="${color}" fill-opacity="${fade?.3:1}" stroke="#122027" stroke-width="2"/>`;
+    }
+    svg+='</g>';
+    $('lineRaceChart').innerHTML=svg;
+    $('lineRaceChart').setAttribute('aria-label',`${state.lineMode==='cum'?'Écoutes cumulées':'Écoutes hebdomadaires'} au ${prettify(current.date)}, ${top.length} artistes classés`);
+    const dateIndex=Math.min(m.weekStarts.length-1,Math.round(at));
+    $('lineDate').textContent=prettify(m.weekStarts[dateIndex]);
+    $('lineWeekLabel').textContent=`SEMAINE ${fmt(ix+1)} / ${fmt(m.lineWeeks.length)} · ${state.lineMode==='cum'?'COURSE CUMULÉE':'COURSE HEBDOMADAIRE'}`;
+    const leaderId=top[0]?.[0];
+    const leaderName=leaderId===undefined?'—':m.artists[leaderId].name;
+    if(leaderId!==state.linePreviousLeader){
+      $('lineLeader').classList.remove('line-leader-flash');void $('lineLeader').offsetWidth;$('lineLeader').classList.add('line-leader-flash');
+      state.linePreviousLeader=leaderId;
+    }
+    $('lineLeader').textContent=leaderName;
+    $('lineLeaderValue').textContent=top.length?minutes(top[0][1]):'Aucune écoute';
+    $('lineLeader').style.color=leaderId!==undefined?artistColor(leaderId):'var(--lime)';
+    renderLineRanks(top);
+    $('lineSeek').value=String(at);
+    const remain=(m.lineWeeks.length-1-at)/state.lineSpeed;
+    $('lineRemaining').textContent=`${fmt(remain)} s restantes`;
+  }
+  function renderLineRanks(top){
+    const root=$('lineRanks'),m=state.model,max=Math.max(1,top[0]?.[1]||1),current=new Set(top.map(([id])=>id));
+    for(const el of [...root.children]){
+      if(!current.has(Number(el.dataset.id))){el.classList.add('line-exit');
+        if(!el.dataset.removing){el.dataset.removing='1';setTimeout(()=>{if(el.classList.contains('line-exit'))el.remove();else delete el.dataset.removing;},360);}
+      }
+    }
+    top.forEach(([id,value],pos)=>{
+      let el=root.querySelector(`.line-rank[data-id="${id}"]`);
+      if(!el){
+        el=document.createElement('button');el.type='button';el.className='line-rank line-exit';el.dataset.id=id;el.style.setProperty('--color',artistColor(id));
+        el.innerHTML=`<span class="line-rank-number"></span><span class="line-rank-name"></span><span class="line-rank-value"></span><span class="line-rank-bar"><span></span></span>`;
+        root.append(el);
+      }
+      el.classList.remove('line-exit');el.classList.toggle('line-pinned',state.linePinned===id);el.classList.toggle('line-first',pos===0);
+      el.style.setProperty('--rank-y',(pos*45)+'px');
+      el.title=`${m.artists[id].name} · ${minutes(value)} · Cliquer pour ${state.linePinned===id?'retirer':'afficher'} le focus`;
+      el.querySelector('.line-rank-number').textContent=String(pos+1).padStart(2,'0');
+      el.querySelector('.line-rank-name').textContent=m.artists[id].name;
+      el.querySelector('.line-rank-value').textContent=fmt(value/60000)+' min';
+      el.querySelector('.line-rank-bar span').style.width=(value/max*100).toFixed(1)+'%';
+    });
+  }
+
   function initRace() {
     stopRace();state.raceDay=0;
     $('seekRace').max=String(Math.max(0,state.model.days.length-1));$('seekRace').value='0';
@@ -476,6 +654,13 @@
   $('overviewTrack').addEventListener('click',e=>{const rect=e.currentTarget.getBoundingClientRect();setChartPosition((e.clientX-rect.left)/rect.width);});
   $('overviewTrack').addEventListener('keydown',e=>{if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();const scroll=$('chartScroller'),max=scroll.scrollWidth-scroll.clientWidth;setChartPosition((scroll.scrollLeft+(e.key==='ArrowRight'?150:-150))/Math.max(1,max));}});
   window.addEventListener('resize',()=>{if(state.model)updateOverview();});
+  $('linePlay').addEventListener('click',toggleLineRace);
+  $('lineRestart').addEventListener('click',()=>linePosition(0));
+  $('lineToEnd').addEventListener('click',()=>linePosition(state.model?state.model.lineWeeks.length-1:0));
+  $('lineModeToggle').addEventListener('click',e=>{const b=e.target.closest('[data-line-mode]');if(!b||!state.model)return;state.lineMode=b.dataset.lineMode;state.linePreviousLeader=null;syncLineModes();renderLineRace();});
+  $('lineSpeed').addEventListener('change',e=>{state.lineSpeed=(Number(e.target.value)||30)/7;renderLineRace();});
+  $('lineSeek').addEventListener('input',e=>linePosition(Number(e.target.value)||0));
+  $('lineRanks').addEventListener('click',e=>{const b=e.target.closest('.line-rank');if(!b||!state.model)return;const id=Number(b.dataset.id);state.linePinned=state.linePinned===id?null:id;renderLineRace();});
   $('playRace').addEventListener('click',playRace);
   $('resetRace').addEventListener('click',()=>{stopRace();state.raceDay=0;renderRace();});
   $('speedSelect').addEventListener('change',e=>{state.speed=Number(e.target.value)||30;});
