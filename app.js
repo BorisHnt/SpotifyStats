@@ -82,6 +82,7 @@
     if (!/\.zip$/i.test(file.name)) {setStatus('Choisis un fichier .zip exporté par Spotify.', 'error');return;}
     stopRace();
     stopLineRace();
+    window.TrackStudio?.stop();
     setStatus('Ouverture de l’archive…', '', 4);
     $('fileInput').value = '';
     try {
@@ -127,6 +128,7 @@
       state.model = model;
       state.year = 'all'; state.metric = 'ms'; state.focusId = null; state.soloId = null;
       state.raceDay = 0;
+      window.TrackStudio?.load(cleaned, model);
       setupDashboard();
       setStatus(`${fmt(model.eventsCount)} événements musicaux importés depuis ${validFiles} fichier(s) JSON. Calculs terminés, sans envoi réseau.`, 'success');
       $('dashboard').hidden = false; $('emptyState').hidden = true; $('reimportBtn').hidden = false;
@@ -624,8 +626,7 @@
       const av=aMap.get(id)??bMap.get(id)??0,bv=bMap.get(id)??av;
       return [id,av+(bv-av)*alpha];
     }).sort((x,y)=>y[1]-x[1] || x[0]-y[0]).slice(0,state.raceCount);
-    // La liste occupe sa vraie hauteur dans la page : les rangs 12 à 100
-    // ne sont plus masqués dans un viewport interne de 570 px.
+    // Le classement occupe sa vraie hauteur, sans masquer les rangs 12 à 100.
     $('raceInner').style.height=Math.max(570,top.length*52+12)+'px';
     const max=Math.max(1,top[0]?.[1]||1),all=new Set(top.map(x=>x[0]));
     const root=$('raceInner');
