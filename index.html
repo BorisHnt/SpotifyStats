@@ -122,15 +122,48 @@
 
       <section id="morceaux-course" class="section" aria-labelledby="tracksHeading">
         <div class="section-heading">
-          <div><span class="eyebrow">06 — LES TITRES EN MOUVEMENT</span><h2 id="tracksHeading">La course des morceaux.</h2><p>Une courbe cumulative animée et un classement quotidien, calculés à partir de chaque écoute. Les deux avancent ensemble, indépendamment de la course des artistes.</p></div>
-          <div class="section-actions"><label for="trackRaceCount">Morceaux</label><select id="trackRaceCount"><option value="10" selected>Top 10</option><option value="20">Top 20</option><option value="50">Top 50</option><option value="100">Top 100</option></select><label for="trackRaceSpeed">Vitesse</label><select id="trackRaceSpeed"><option value="15">15 jours/s</option><option value="30" selected>30 jours/s</option><option value="60">60 jours/s</option><option value="120">120 jours/s</option></select></div>
+          <div><span class="eyebrow">06 — MORCEAUX DANS LE TEMPS</span><h2 id="tracksHeading">Chaque morceau a sa course.</h2><p>Deux animations indépendantes : les courbes cumulatives et le classement quotidien. Le même indicateur s'applique aux deux.</p></div>
+          <div class="section-actions track-metric-choice">
+            <label for="trackMetricSelect">Classement par</label>
+            <select id="trackMetricSelect" aria-label="Choisir les minutes ou le nombre d'écoutes des morceaux">
+              <option value="ms" selected>Minutes écoutées</option>
+              <option value="plays">Nombre d'écoutes (≥ 30 s)</option>
+            </select>
+          </div>
         </div>
-        <article class="panel track-studio">
-          <div class="track-head"><div><span class="eyebrow">COURBE CUMULATIVE · EN DIRECT</span><h3 id="trackRaceDate">—</h3><small id="trackRaceMeta">Aucune archive importée</small></div><div class="track-champion"><small>NUMÉRO 1 DU JOUR</small><strong id="trackRaceLeader">—</strong><span id="trackRaceLeaderMinutes">—</span></div></div>
-          <div class="track-chart-area"><svg id="trackRaceChart" viewBox="0 0 980 410" role="img" aria-label="Progression des minutes cumulées des morceaux au fil du temps"></svg><div class="track-chart-caption"><span>Courbes des 10 titres en tête, avec fenêtre mobile d'environ 6 mois</span><span>Minutes cumulées depuis le début</span></div></div>
-          <div class="track-controls"><button id="trackRacePlay" class="button button-primary" type="button">▶ Animer</button><button id="trackRaceReset" class="button button-subtle" type="button">↺ Début</button><label for="trackRaceSeek">Date</label><input id="trackRaceSeek" type="range" min="0" max="1" value="0" step="0.01" aria-label="Naviguer de jour en jour dans la course des morceaux"><button id="trackRaceEnd" class="button button-subtle" type="button">Fin →</button><small id="trackRaceRemaining">—</small></div>
+
+        <article id="morceaux-courbe" class="panel track-studio" aria-labelledby="trackLineHeading">
+          <div class="track-head"><div><span class="eyebrow">01 — COURBE ANIMÉE</span><h3 id="trackLineHeading">La trajectoire des morceaux.</h3><small id="trackRaceMeta">Prête pour ton archive Spotify</small></div><div class="track-champion"><small>NUMÉRO 1 À CETTE DATE</small><strong id="trackRaceLeader">—</strong><span id="trackRaceLeaderMinutes">—</span></div></div>
+          <div class="track-live-date"><strong id="trackRaceDate">—</strong><span id="trackLineIndicator">Minutes cumulées depuis le début</span></div>
+          <div class="track-line-layout">
+            <div class="track-chart-area"><svg id="trackRaceChart" viewBox="0 0 980 410" role="img" aria-label="Courbe cumulative animée des dix premiers morceaux"></svg><div class="track-chart-caption"><span>Courbes fines · fenêtre glissante d'environ 6 mois</span><span id="trackLineUnits">Minutes cumulées</span></div></div>
+            <div class="track-line-board"><div class="track-line-board-title"><strong>TOP 10 EN DIRECT</strong><small id="trackLineBoardUnit">Minutes cumulées</small></div><div class="track-line-ranks" id="trackLineRanks" aria-live="off"></div><p>Choisis un morceau pour suivre sa courbe.</p></div>
+          </div>
+          <div class="track-controls">
+            <button id="trackRacePlay" class="button button-primary" type="button">▶ Animer la courbe</button>
+            <button id="trackRaceReset" class="button button-subtle" type="button">↺ Début</button>
+            <label for="trackRaceSeek">Date</label><input id="trackRaceSeek" type="range" min="0" max="1" value="0" step="0.01" aria-label="Naviguer dans la chronologie de la courbe des morceaux">
+            <button id="trackRaceEnd" class="button button-subtle" type="button">Fin →</button>
+            <label for="trackLineSpeed">Vitesse</label><select id="trackLineSpeed" aria-label="Vitesse de la courbe des morceaux"><option value="15">15 jours/s</option><option value="30" selected>30 jours/s</option><option value="60">60 jours/s</option><option value="120">120 jours/s</option></select>
+            <small id="trackRaceRemaining">—</small>
+          </div>
+          <p class="track-studio-note" id="trackLineFocus">Les courbes utilisent les valeurs cumulées, recalculées chaque jour.</p>
         </article>
-        <article class="panel track-rank-panel"><div class="track-rank-heading"><div><span class="eyebrow">CLASSEMENT CUMULATIF · JOUR PAR JOUR</span><h3 id="trackRaceTitle">Top 10 morceaux</h3><small id="trackRaceSubtitle">—</small></div><div id="trackRaceFocus" class="track-focus" aria-live="polite">Clique sur un titre pour mettre sa courbe en évidence.</div></div><div class="track-race-rows" id="trackRaceRows" aria-live="off" aria-label="Classement complet des morceaux"><div class="track-race-inner" id="trackRaceInner"></div></div><p class="track-note">Les minutes sont réelles, y compris celles des écoutes interrompues. Les morceaux apparaissent progressivement à leur première écoute. Les Top 20, 50 et 100 s'affichent intégralement dans la page.</p></article>
+
+        <article id="morceaux-classement" class="panel track-rank-panel" aria-labelledby="trackRaceTitle">
+          <div class="track-rank-heading"><div><span class="eyebrow">02 — CLASSEMENT ANIMÉ INDÉPENDANT</span><h3 id="trackRaceTitle">Top 10 morceaux</h3><small id="trackRaceSubtitle">—</small></div><div class="track-rank-settings"><label for="trackRaceCount">Morceaux</label><select id="trackRaceCount" aria-label="Nombre de morceaux dans le classement"><option value="10" selected>Top 10</option><option value="20">Top 20</option><option value="50">Top 50</option><option value="100">Top 100</option></select><label for="trackRaceSpeed">Vitesse</label><select id="trackRaceSpeed" aria-label="Vitesse du classement des morceaux"><option value="15">15 jours/s</option><option value="30" selected>30 jours/s</option><option value="60">60 jours/s</option><option value="120">120 jours/s</option></select></div></div>
+          <div class="track-rank-date"><strong id="trackRankDate">—</strong><span id="trackRankMeta">—</span></div>
+          <div class="track-race-rows" id="trackRaceRows" aria-live="off" aria-label="Classement complet des morceaux"><div class="track-race-inner" id="trackRaceInner"></div></div>
+          <div class="track-controls track-rank-controls">
+            <button id="trackRankPlay" class="button button-primary" type="button">▶ Animer le classement</button>
+            <button id="trackRankReset" class="button button-subtle" type="button">↺ Début</button>
+            <label for="trackRankSeek">Date</label><input id="trackRankSeek" type="range" min="0" max="1" value="0" step="0.01" aria-label="Naviguer indépendamment dans le classement quotidien des morceaux">
+            <button id="trackRankEnd" class="button button-subtle" type="button">Fin →</button>
+            <small id="trackRankRemaining">—</small>
+          </div>
+          <p class="track-note" id="trackRaceFocus">Clique sur un titre pour retrouver sa courbe au-dessus. Les Top 20, 50 et 100 sont entièrement visibles en défilant la page.</p>
+        </article>
+        <p class="track-measure-note">Une « écoute » est ici une lecture Spotify de <strong>30 secondes ou plus</strong> (pas forcément un morceau terminé). En mode minutes, les écoutes interrompues sont également additionnées. Les données restent exclusivement sur ton appareil.</p>
       </section>
 
       <section id="explorateur" class="section">

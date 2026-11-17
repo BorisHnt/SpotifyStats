@@ -35,7 +35,7 @@ L'historique étendu peut contenir beaucoup de données sensibles. **Ne l'ajoute
 - **Course de courbes animée** : les artistes du top 10 changent au fil des semaines, en mode « Par semaine » ou « Cumul depuis le début ». Caméra glissante sur ~6 mois, top 10 dynamique, focus artiste, lecture/pause, seek et vitesses 15/30/60/120 jours/seconde.
 - Frise défilable de gauche à droite pour les **10 artistes les plus écoutés sur la totalité de l'historique**, avec **minutes par semaine**.
 - Classement artistes Top 10/20/50/100, affiché intégralement dans la page.
-- **Course des morceaux** : courbes cumulatives glissantes et classement animé par jour, Top 10/20/50/100, navigation temporelle, couleurs persistantes et focus sur un morceau. Chaque lecture est attribuée au titre Spotify (URI quand elle existe), sans requête externe.
+- **Course des morceaux** : deux animations **indépendantes**. La courbe cumulative (Top 10 avec classement latéral) et la course quotidienne Top 10/20/50/100 ont chacune leurs commandes de lecture, leur vitesse et leur curseur de date. Une combobox commune choisit entre **minutes cumulées** et **nombre de lectures ≥ 30 secondes cumulé**. Chaque lecture est attribuée au titre Spotify (URI quand elle existe), sans requête externe.
 - Top 10 cumulatif **jour par jour**, animé à 15, 30, 60 ou 120 jours/seconde (30 par défaut), avec pause, reprise et curseur temporel.
 - Export CSV des morceaux sur la période sélectionnée.
 
@@ -49,7 +49,7 @@ L'historique étendu peut contenir beaucoup de données sensibles. **Ne l'ajoute
 
 **Top 10 animé** : durées cumulées depuis le premier jour de l'archive, recalculées à chaque date. Les jours sans écoute restent présents. Les valeurs affichées pendant les interpolations entre deux jours servent à fluidifier l'animation ; le total exact à chaque date entière est conservé.
 
-**Morceaux** : identifiés par URI Spotify lorsque disponible ; sinon par artiste, nom et album. Des variantes différentes peuvent donc compter comme deux titres.
+**Morceaux** : identifiés par URI Spotify lorsque disponible ; sinon par artiste, nom et album. Des variantes différentes peuvent donc compter comme deux titres. Pour la course des morceaux, le mode « Écoutes » compte une lecture uniquement si `ms_played >= 30000` (ou `msPlayed` dans le format standard). Le mode « Minutes » additionne toutes les durées jouées, même si le titre a été interrompu. Les deux animations conservent des dates indépendantes quand on change de métrique.
 
 ## Structure
 
@@ -57,7 +57,7 @@ L'historique étendu peut contenir beaucoup de données sensibles. **Ne l'ajoute
 index.html          # Point d'entrée GitHub Pages
 styles.css          # Design responsive, aucune police externe
 app.js              # Parser ZIP, normalisation, calculs et graphiques
-tracks.js           # Course cumulative animée des morceaux, indépendante des artistes
+tracks.js           # Courbe et classement de morceaux indépendants ; minutes et écoutes
 favicon.svg         # Icône locale
 vendor/jszip.min.js # JSZip, compression ZIP intégrée
 vendor/JSZIP-LICENSE.txt
