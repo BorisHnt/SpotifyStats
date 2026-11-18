@@ -74,3 +74,11 @@ L'application ne transmet ni ne journalise les données d'écoute. Si tu utilise
 ## Développement
 
 HTML, CSS et JavaScript natifs ; JSZip v3.10.1 inclus en local sous double licence MIT/GPLv3. Il est possible de modifier le site en éditant directement ses fichiers, puis en rechargeant la page.
+
+## Analyses avancées — sans API
+
+La section « Analyses avancées », placée après l’explorateur, propose sept panneaux repliables : réécoutes/obsessions, skips/écoutes courtes, albums et course cumulative quotidienne des albums (Top 10/20/50/100), découvertes et fidélité, records/sessions estimées, plateformes/modes, et indicateurs personnalisés. Filtre par année et par minutes ou écoutes ≥ 30 secondes. La course des albums porte sur toute l’archive, quelle que soit l’année filtrée.
+
+Les champs facultatifs skipped, shuffle, offline, incognito_mode et platform ne sont utilisés que lorsqu’ils existent (généralement dans l’archive étendue). Les plateformes sont ramenées à leur famille ; ni modèle précis d’appareil, ni adresse IP, ni pays n’est conservé dans les modèles de statistiques. Les métadonnées absentes ne sont pas inventées. Un skip explicitement signalé diffère d’une lecture courte ; les « écoutes » sont des événements ≥ 30 s, pas des lectures complètes. Les sessions sont des estimations fondées sur un écart de ≤ 30 minutes entre lectures. Le score de diversité repose sur l’indice Simpson inverse ; les autres scores personnalisés sont descriptifs et non officiels.
+
+Les genres, BPM et tonalités ne figurent pas dans l’archive Spotify et demanderaient un enrichissement externe facultatif.

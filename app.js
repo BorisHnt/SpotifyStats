@@ -45,6 +45,18 @@
   function readEvent(raw) {
     if (!raw || typeof raw !== 'object') return null;
     let artist, name, album, uri, ms, day, hour, unix;
+    const knownBool = v => typeof v==='boolean' ? v : null;
+    const platform = raw.platform==null?null:(() => {
+      const p=String(raw.platform).toLowerCase();
+      if(p.includes('android'))return 'Android';
+      if(p.includes('iphone')||p.includes('ipad')||p.includes('ios'))return 'iOS / iPadOS';
+      if(p.includes('windows'))return 'Windows';
+      if(p.includes('mac')||p.includes('os x'))return 'macOS';
+      if(p.includes('linux'))return 'Linux';
+      if(p.includes('web')||p.includes('browser'))return 'Navigateur Web';
+      if(p.includes('tv')||p.includes('chromecast'))return 'TV / Chromecast';
+      return 'Autre plateforme';
+    })();
     if ('master_metadata_track_name' in raw || 'master_metadata_album_artist_name' in raw) {
       artist = raw.master_metadata_album_artist_name;
       name = raw.master_metadata_track_name;
@@ -74,7 +86,7 @@
     if (!Number.isFinite(ms) || ms < 0) return null;
     const d = Date.parse(day + 'T12:00:00Z');
     if (!Number.isFinite(d) || hour < 0 || hour > 23) return null;
-    return {artist:artist.trim(),name:name.trim(),album:String(album || ''),uri:String(uri || ''),ms:Math.round(ms),day,hour,unix};
+    return {artist:artist.trim(),name:name.trim(),album:String(album || ''),uri:String(uri || ''),ms:Math.round(ms),day,hour,unix,platform,skipped:knownBool(raw.skipped),shuffle:knownBool(raw.shuffle),offline:knownBool(raw.offline),incognito:knownBool(raw.incognito_mode)};
   }
 
   async function importZip(file) {
@@ -83,6 +95,7 @@
     stopRace();
     stopLineRace();
     window.TrackStudio?.stop();
+    window.AdvancedStats?.stop();
     setStatus('Ouverture de l’archive…', '', 4);
     $('fileInput').value = '';
     try {
@@ -129,6 +142,7 @@
       state.year = 'all'; state.metric = 'ms'; state.focusId = null; state.soloId = null;
       state.raceDay = 0;
       window.TrackStudio?.load(cleaned, model);
+      window.AdvancedStats?.load(cleaned, model);
       setupDashboard();
       setStatus(`${fmt(model.eventsCount)} événements musicaux importés depuis ${validFiles} fichier(s) JSON. Calculs terminés, sans envoi réseau.`, 'success');
       $('dashboard').hidden = false; $('emptyState').hidden = true; $('reimportBtn').hidden = false;

@@ -8,9 +8,11 @@
   <title>Listening Atlas — Ton Spotify, en détail</title>
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="advanced.css">
   <script src="vendor/jszip.min.js" defer></script>
   <script src="app.js" defer></script>
   <script src="tracks.js" defer></script>
+  <script src="advanced.js" defer></script>
 </head>
 <body>
   <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
@@ -47,6 +49,7 @@
         <a href="#course" class="nav-link">Course animée</a>
         <a href="#morceaux-course" class="nav-link">Course des morceaux</a>
         <a href="#explorateur" class="nav-link">Explorateur</a>
+        <a href="#analyses-avancees" class="nav-link">Analyses avancées</a>
       </nav>
 
       <section id="vue-ensemble" class="section">
@@ -169,6 +172,12 @@
       <section id="explorateur" class="section">
         <div class="section-heading"><div><span class="eyebrow">07 — BIBLIOTHÈQUE</span><h2>Retrouver n'importe quel morceau.</h2><p>Recherche parmi tous les titres de l'historique, avec leur temps d'écoute réel.</p></div><div class="section-actions"><input id="search" class="search" type="search" placeholder="Titre, artiste, album…" aria-label="Rechercher un morceau"><label for="browseLimit">Afficher</label><select id="browseLimit"><option value="30">30 titres</option><option value="100">100 titres</option><option value="300">300 titres</option></select></div></div><article class="panel"><div class="browse-caption" id="browseCaption">—</div><div class="rank-list" id="browse"></div></article>
       </section>
+
+      <section id="analyses-avancees" class="section advanced-wrap" aria-labelledby="advancedTitle">
+        <div class="section-heading"><div><span class="eyebrow">08 — TOUTE TON HISTOIRE</span><h2 id="advancedTitle">Analyses avancées.</h2><p class="adv-intro">Records, répétitions, skips, albums, découvertes, sessions, habitudes et indices. Les catégories sont repliables. Tous les chiffres proviennent de ton ZIP Spotify.</p></div><div class="section-actions"><label for="advancedYear">Période</label><select id="advancedYear" aria-label="Période des analyses avancées"><option value="all">Toute la période</option></select><label for="advancedMetric">Calcul</label><select id="advancedMetric" aria-label="Mesure des analyses avancées"><option value="ms">Minutes écoutées</option><option value="plays">Nombre d’écoutes ≥ 30 s</option></select></div></div>
+        <div id="advancedSummary"></div><div id="advancedContent"></div>
+      </section>
+
     </div>
 
     <section id="mode-emploi" class="help-section"><span class="eyebrow">MODE D'EMPLOI</span><h2>Trois clics, zéro serveur.</h2><div class="help-grid"><div><strong>01. Demande ton export</strong><p>Dans les paramètres de confidentialité de Spotify, demande l'« Historique d'écoute étendu ». L'export classique est également accepté, avec moins de détails.</p></div><div><strong>02. Importe le ZIP</strong><p>Dépose directement le fichier ZIP téléchargé. Pas besoin de le décompresser, ni de fournir une clé API.</p></div><div><strong>03. Explore librement</strong><p>Tous les calculs sont réalisés sur ton appareil. Le contenu original, notamment les adresses IP ou appareils, n'est ni affiché, ni sauvegardé, ni envoyé.</p></div></div></section>
