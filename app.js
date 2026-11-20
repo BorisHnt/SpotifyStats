@@ -146,10 +146,12 @@
       setupDashboard();
       setStatus(`${fmt(model.eventsCount)} événements musicaux importés depuis ${validFiles} fichier(s) JSON. Calculs terminés, sans envoi réseau.`, 'success');
       $('dashboard').hidden = false; $('emptyState').hidden = true; $('reimportBtn').hidden = false;
-      $('dashboard').scrollIntoView({behavior:'smooth',block:'start'});
+      return true;
+      // L’orchestrateur place ensuite le focus sur le module disponible.
     } catch (err) {
       console.error('Import Spotify :',err?.message || err);
       setStatus('Import impossible : ' + (err?.message || 'erreur inconnue'), 'error');
+      return false;
     }
   }
 
@@ -669,13 +671,13 @@
   // Import + interactions (tous les composants restent inertes tant que le ZIP n'est pas chargé).
   $('uploadZone').addEventListener('click',()=>$('fileInput').click());
   $('uploadZone').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('fileInput').click();}});
-  $('fileInput').addEventListener('change',e=>importZip(e.target.files[0]));
-  $('reimportBtn').addEventListener('click',()=>$('fileInput').click());
+  $('fileInput').addEventListener('change',e=>{window.ImportManager?.selectMusic(e.target.files[0]);e.target.value='';});
+  $('reimportBtn').addEventListener('click',()=>$('uploadZone').scrollIntoView({behavior:'smooth',block:'center'}));
   let dragLevel=0;
   document.addEventListener('dragenter',e=>{if([...e.dataTransfer?.types||[]].includes('Files')){dragLevel++;$('uploadZone').classList.add('drag-over');}});
   document.addEventListener('dragleave',()=>{dragLevel--;if(dragLevel<=0){dragLevel=0;$('uploadZone').classList.remove('drag-over');}});
   document.addEventListener('dragover',e=>{if([...e.dataTransfer?.types||[]].includes('Files'))e.preventDefault();});
-  document.addEventListener('drop',e=>{e.preventDefault();dragLevel=0;$('uploadZone').classList.remove('drag-over');if(e.dataTransfer?.files?.length)importZip(e.dataTransfer.files[0]);});
+  document.addEventListener('drop',e=>{e.preventDefault();dragLevel=0;$('uploadZone').classList.remove('drag-over');if(e.dataTransfer?.files?.length){const tech=Boolean(e.target.closest('#techUploadZone'));window.ImportManager?.[tech?'selectTech':'selectMusic'](e.dataTransfer.files[0]);}});
   $('yearSelect').addEventListener('change',e=>{state.year=e.target.value;renderDashboard();});
   $('yearsChart').addEventListener('click',e=>{const bar=e.target.closest('[data-year]');if(bar){state.year=bar.dataset.year;renderDashboard();}});
   $('metricToggle').addEventListener('click',e=>{const button=e.target.closest('[data-metric]');if(button){state.metric=button.dataset.metric;renderDashboard();}});
@@ -713,4 +715,5 @@
   });
   $('seekRace').addEventListener('input',e=>{stopRace();state.raceDay=Number(e.target.value)||0;renderRace();});
 
+  window.MusicStudio={importFile:importZip,hasModel:()=>Boolean(state.model)};
 })();

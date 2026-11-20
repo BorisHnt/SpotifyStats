@@ -75,10 +75,40 @@ L'application ne transmet ni ne journalise les données d'écoute. Si tu utilise
 
 HTML, CSS et JavaScript natifs ; JSZip v3.10.1 inclus en local sous double licence MIT/GPLv3. Il est possible de modifier le site en éditant directement ses fichiers, puis en rechargeant la page.
 
-## Analyses avancées — sans API
 
-La section « Analyses avancées », placée après l’explorateur, propose sept panneaux repliables : réécoutes/obsessions, skips/écoutes courtes, albums et course cumulative quotidienne des albums (Top 10/20/50/100), découvertes et fidélité, records/sessions estimées, plateformes/modes, et indicateurs personnalisés. Filtre par année et par minutes ou écoutes ≥ 30 secondes. La course des albums porte sur toute l’archive, quelle que soit l’année filtrée.
+## Analyses avancées (sans API)
 
-Les champs facultatifs skipped, shuffle, offline, incognito_mode et platform ne sont utilisés que lorsqu’ils existent (généralement dans l’archive étendue). Les plateformes sont ramenées à leur famille ; ni modèle précis d’appareil, ni adresse IP, ni pays n’est conservé dans les modèles de statistiques. Les métadonnées absentes ne sont pas inventées. Un skip explicitement signalé diffère d’une lecture courte ; les « écoutes » sont des événements ≥ 30 s, pas des lectures complètes. Les sessions sont des estimations fondées sur un écart de ≤ 30 minutes entre lectures. Le score de diversité repose sur l’indice Simpson inverse ; les autres scores personnalisés sont descriptifs et non officiels.
+La dernière section, **Analyses avancées**, apporte sept catégories repliables : réécoutes et concentration, skips et écoutes courtes, top albums et course cumulative des albums, découvertes et fidélité, records et sessions, plateformes/modes d’écoute, indices de diversité et d’obsession. Les listes et les graphiques se filtrent par année et par minutes ou lectures ≥ 30 secondes. La course des albums utilise toute la chronologie, indépendamment de l’année filtrée.
 
-Les genres, BPM et tonalités ne figurent pas dans l’archive Spotify et demanderaient un enrichissement externe facultatif.
+Les métadonnées facultatives (`skipped`, `shuffle`, `offline`, `incognito_mode`, `platform`) sont disponibles surtout dans l’archive étendue. Les pourcentages ne comptent que les événements ayant le champ correspondant. La plateforme est réduite à sa famille (Android, iOS, Windows, macOS, Linux, navigateur, autre) : **jamais de modèle précis d’appareil, d’IP ni de pays enregistrés**. Le skip explicite et le simple fait de jouer moins de 30 secondes sont deux mesures différentes.
+
+Les **sessions** sont seulement estimées en regroupant les lectures dont le démarrage estimé se situe au plus 30 minutes après la précédente. La diversité effective utilise l’inverse de la somme des carrés des parts d’artistes ; les autres scores personnalisés sont documentés dans l’interface et ne sont pas officiels Spotify. Les « découvertes » sont les premières apparitions dans l’archive, pas les premières écoutes de toute une vie.
+
+Les albums sont connus seulement lorsque l’export renseigne l’album. Les genres, BPM, tonalités et données acoustiques ne sont pas présents et ne sont pas inventés.
+
+## Double import : statistiques musicales et observatoire technique
+
+Le site propose désormais **deux emplacements ZIP indépendants**, suivis d'un seul bouton « Lancer l'analyse » :
+
+1. **Historique d'écoute** (`my_spotify_data.zip` avec `Streaming_History_Audio_*.json`, ou `StreamingHistory_*.json`) : débloque toute la partie musicale, les courses d'artistes et de morceaux, et les analyses avancées.
+2. **Journaux techniques** (`Spotify Technical Log Information/*.json`) : débloque l'**Observatoire technique** en bas de page ; il fonctionne même lorsque l'historique d'écoute n'est pas disponible.
+
+Si tu ne fournis qu'une archive, l'autre partie reste masquée. Avec les deux, toutes les sections sont disponibles. Le bouton de lancement empêche l'analyse automatique lors de la simple sélection d'un fichier. Un mauvais ZIP n'annule pas l'analyse de l'autre archive.
+
+L'Observatoire technique propose :
+
+- **Panorama** : catégories de journaux, types d'événements les plus fréquents, fréquence mensuelle, activité par heure UTC et sélection de période ;
+- **Lecture** : événements RawCoreStream (minutes et nombre de lectures signalées), raisons de démarrage/arrêt, shuffle, contenus téléchargés, médias non lancés ;
+- **Qualité audio** : distribution des débits des fichiers sélectionnés, évolution des préférences Wi-Fi/données mobiles, normalisation, égaliseur, fondu enchaîné et lecture sans blanc ;
+- **Réseau et cache** : journaux Download/ProgressiveDownload, compteurs CDN/cache, protocoles, progression de la taille du cache et nombre de titres hors ligne enregistrés ;
+- **Appareils** : systèmes d'exploitation, modèles et catégories d'appareils, versions Spotify, Connect, routes de sortie, évolution des réglages de volume ;
+- **Incidents** : PlaybackError, Stutter, RequestFailure et autres types de diagnostics, fréquence et motifs répertoriés ;
+- **Bibliothèque et social** : événements d'ajout en playlist, partages, interactions Spotify Jam et autres ;
+- **Explorateur de journaux** : choix parmi tous les types d'événements reconnus, courbes mensuelles, dictionnaire des champs avec présence, et histogrammes/séries temporelles pour des propriétés dont les valeurs sont explicitement autorisées ;
+- **Export CSV** : table agrégée des comptes par type de journal et par mois, sans données individuelles.
+
+**Interprétation :** les journaux techniques sont de la télémétrie partielle, et ne remplacent jamais l'historique musical. `RawCoreStream` n'est pas une liste exhaustive des écoutes ; les rapports `Download` et `CacheReport` ne donnent pas un compteur officiel des données consommées et peuvent se chevaucher. Les types d'erreurs désignent des traces, pas forcément des incidents subis. Les paramètres enregistrés sont des valeurs de rapports et non des mesures continues. Certaines propriétés ne disposent d'aucune définition officielle dans l'archive : elles sont présentées telles qu'elles sont nommées, sans interprétation arbitraire.
+
+**Confidentialité :** les fichiers bruts ne quittent jamais l'appareil. Le parser technique ne conserve que des agrégats et des informations autorisées, sans identifiants d'appareil, adresses IP, MAC, adresses mail, jetons, URL ni identifiants de comptes tiers. Le code source public **ne contient aucune archive personnelle**. Les ZIP restent nécessaires après chaque rechargement.
+
+**Compatibilité :** fichier `index.html` à la racine de GitHub Pages ; JavaScript vanilla, aucune API Spotify, aucune installation npm ; JSZip déjà embarqué. `technical.js`, `technical.css` et `import-manager.js` sont obligatoires en plus des fichiers existants.

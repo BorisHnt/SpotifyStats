@@ -9,10 +9,13 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="advanced.css">
+  <link rel="stylesheet" href="technical.css">
   <script src="vendor/jszip.min.js" defer></script>
   <script src="app.js" defer></script>
   <script src="tracks.js" defer></script>
   <script src="advanced.js" defer></script>
+  <script src="technical.js" defer></script>
+  <script src="import-manager.js" defer></script>
 </head>
 <body>
   <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
@@ -24,14 +27,33 @@
     <section class="hero" aria-labelledby="heroTitle">
       <div class="eyebrow"><span class="spark">✳</span> TON HISTOIRE MUSICALE, SANS WRAPPED</div>
       <h1 id="heroTitle">Chaque écoute<br><em>raconte quelque chose.</em></h1>
-      <p>Huit ans, dix ans, toute une vie sur Spotify ? Dépose ton export et découvre les artistes, les morceaux et les habitudes qui ont traversé tes années.</p>
-      <div id="uploadZone" class="upload-zone" role="button" tabindex="0" aria-label="Importer une archive ZIP Spotify">
-        <div class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V3m0 0L7 8m5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/></svg></div>
-        <div class="upload-text"><strong>Glisse ton archive Spotify ici</strong><span>ou clique pour choisir ton fichier .zip · Historique étendu ou standard</span></div>
-        <span class="button button-primary">Importer un ZIP <span aria-hidden="true">↗</span></span>
+      <p>Importe ton historique d’écoute, tes journaux techniques, ou les deux : une analyse complète de ta musique et du fonctionnement de Spotify, sans envoyer tes archives sur un serveur.</p>
+      <div class="import-grid" aria-label="Importer les archives Spotify">
+        <div class="import-card">
+          <div class="import-card-title"><span class="import-count">01</span><h2>Historique d’écoute</h2></div>
+          <div id="uploadZone" class="upload-zone import-zone" role="button" tabindex="0" aria-label="Choisir l’archive ZIP d’historique d’écoute">
+            <div class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V3m0 0L7 8m5-5 5 5"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-4"/></svg></div>
+            <div class="upload-text"><strong>Choisir le ZIP des écoutes</strong><span>Historique Spotify étendu ou standard</span></div>
+          </div>
+          <input id="fileInput" type="file" accept=".zip,application/zip" hidden aria-label="Archive des écoutes Spotify">
+          <span class="import-file" id="musicSelected">Aucune archive sélectionnée</span>
+          <p>Artistes, morceaux, minutes, classements, courbes et analyses avancées.</p>
+          <div class="upload-status" id="uploadStatus" role="status" aria-live="polite"><span id="statusText">En attente d’un ZIP d’écoute.</span><div id="progressWrap" class="progress-wrap" hidden><span id="progressBar"></span></div></div>
+        </div>
+        <div class="import-card">
+          <div class="import-card-title"><span class="import-count">02</span><h2>Journaux techniques</h2></div>
+          <div id="techUploadZone" class="upload-zone import-zone" role="button" tabindex="0" aria-label="Choisir l’archive ZIP des journaux techniques">
+            <div class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3h18v18H3zM7 8h10M7 12h10M7 16h6"/></svg></div>
+            <div class="upload-text"><strong>Choisir le ZIP technique</strong><span>Spotify Technical Log Information</span></div>
+          </div>
+          <input id="techFileInput" type="file" accept=".zip,application/zip" hidden aria-label="Archive des journaux Spotify">
+          <span class="import-file" id="techSelected">Aucune archive sélectionnée</span>
+          <p>Appareils, audio, téléchargements, cache, erreurs, social et journaux.</p>
+          <div id="techProgress" class="upload-status" role="status" aria-live="polite">En attente d’un ZIP technique.</div>
+          <div class="tech-progress-track"><div id="techProgressBar"></div></div>
+        </div>
       </div>
-      <input id="fileInput" type="file" accept=".zip,application/zip" hidden aria-label="Choisir une archive Spotify">
-      <div class="upload-status" id="uploadStatus" role="status" aria-live="polite"><span id="statusText">Aucune donnée chargée. Rien n'est envoyé sur Internet.</span><div id="progressWrap" class="progress-wrap" hidden><span id="progressBar"></span></div></div>
+      <div class="import-submit"><button id="runAnalysis" class="button button-primary" type="button" disabled>▶ Lancer l’analyse</button><span id="importNotice" role="status" aria-live="polite">Sélectionne une archive ou les deux. Aucune analyse n’est lancée avant ton clic.</span></div>
       <p class="hero-note">Aucun compte à connecter. Pas d'API, pas de backend, pas de cookies : le ZIP reste dans ton navigateur, et disparaît lorsque tu fermes la page.</p>
     </section>
     <section id="emptyState" class="empty-state" aria-label="Fonctionnalités disponibles">
@@ -50,6 +72,7 @@
         <a href="#morceaux-course" class="nav-link">Course des morceaux</a>
         <a href="#explorateur" class="nav-link">Explorateur</a>
         <a href="#analyses-avancees" class="nav-link">Analyses avancées</a>
+        <a href="#techDashboard" id="techMusicNavLink" class="nav-link" hidden>Diagnostic technique</a>
       </nav>
 
       <section id="vue-ensemble" class="section">
@@ -180,7 +203,33 @@
 
     </div>
 
-    <section id="mode-emploi" class="help-section"><span class="eyebrow">MODE D'EMPLOI</span><h2>Trois clics, zéro serveur.</h2><div class="help-grid"><div><strong>01. Demande ton export</strong><p>Dans les paramètres de confidentialité de Spotify, demande l'« Historique d'écoute étendu ». L'export classique est également accepté, avec moins de détails.</p></div><div><strong>02. Importe le ZIP</strong><p>Dépose directement le fichier ZIP téléchargé. Pas besoin de le décompresser, ni de fournir une clé API.</p></div><div><strong>03. Explore librement</strong><p>Tous les calculs sont réalisés sur ton appareil. Le contenu original, notamment les adresses IP ou appareils, n'est ni affiché, ni sauvegardé, ni envoyé.</p></div></div></section>
+
+    <section id="techDashboard" class="tech-section section" hidden aria-labelledby="techTitle">
+      <div class="section-heading"><div><span class="eyebrow">09 — SPOTIFY SOUS LE CAPOT</span><h2 id="techTitle">Observatoire technique.</h2><p>Journaux techniques, tendances, qualité audio, réseau, appareils, stabilité et interactions. Les données restent dans la mémoire de ce navigateur.</p></div><div class="section-actions"><label for="techYear">Période</label><select id="techYear"><option value="all">Toute la période</option></select><button id="techCsvBtn" class="button button-subtle" type="button">Exporter CSV agrégé</button></div></div>
+      <nav class="tech-nav" aria-label="Navigation diagnostic"><a href="#tech-volume">Panorama</a><a href="#tech-stream">Lecture</a><a href="#tech-audio">Audio</a><a href="#tech-network">Réseau</a><a href="#tech-device">Appareils</a><a href="#tech-errors">Incidents</a><a href="#tech-social">Bibliothèque</a><a href="#tech-explorer">Explorer</a></nav>
+      <p class="tech-warning">Les données de télémétrie ne représentent pas toutes les écoutes ni tous les événements survenus sur les appareils. Les nombres sont des <strong>événements signalés</strong>, pas automatiquement des incidents, des morceaux distincts ou des volumes réseau exhaustifs. Les valeurs identifiantes des journaux ne sont pas affichées.</p>
+      <div id="techSummary"></div>
+      <div class="tech-grid" id="tech-volume">
+        <article class="tech-panel"><div class="tech-panel-head"><h3>Évolution des événements</h3><p id="techTrendHint">Tous les types techniques</p><label for="techTrend">Catégorie <select id="techTrend"><option value="all">Tous les événements</option></select></label></div><div id="techTimeline"></div></article>
+        <article class="tech-panel"><div class="tech-panel-head"><h3>Domaines techniques</h3><p>Nombre de traces regroupées par domaine.</p></div><div id="techCategories"></div></article>
+        <article class="tech-panel"><div class="tech-panel-head"><h3>Types d'événements les plus fréquents</h3><p>Répartition sur la période sélectionnée.</p></div><div id="techPopular"></div></article>
+        <article class="tech-panel"><div class="tech-panel-head"><h3>Activité horaire technique</h3><p>Répartition UTC sur l’archive complète. Ce sont des événements d’application, pas des heures de musique.</p></div><div id="techHours"></div></article>
+      </div>
+      <details id="tech-stream" class="tech-fold" open><summary>Lecture, shuffle et contexte <span>RawCoreStream et événements de lecture</span></summary><div id="techStreamContent"></div></details>
+      <details id="tech-audio" class="tech-fold" open><summary>Qualité audio et paramètres <span>Débit, Wi-Fi, normalisation, égaliseur</span></summary><div id="techAudioContent"></div></details>
+      <details id="tech-network" class="tech-fold" open><summary>Téléchargements, cache et hors-ligne <span>CDN, cache, sources réseau, stockage</span></summary><div id="techNetworkContent"></div></details>
+      <details id="tech-device" class="tech-fold"><summary>Appareils et Spotify Connect <span>OS, sorties audio, volume, périphériques</span></summary><div id="techDeviceContent"></div></details>
+      <details id="tech-errors" class="tech-fold"><summary>Erreurs, ralentissements et stabilité <span>PlaybackError, RequestFailure, Stutter</span></summary><div id="techErrorContent"></div></details>
+      <details id="tech-social" class="tech-fold"><summary>Playlists, bibliothèque, partage et Jam <span>Comptages anonymisés</span></summary><div id="techSocialContent"></div></details>
+      <details id="tech-explorer" class="tech-fold" open><summary>Explorateur de tous les événements <span>Types, chronologies et propriétés disponibles</span></summary>
+        <div class="tech-explorer-head"><label for="techEventType">Type de journal <select id="techEventType" aria-label="Sélectionner un type de journal technique"></select></label><p id="techPrivacy"></p></div>
+        <div id="techTypeSummary"></div><div class="tech-grid"><article class="tech-panel"><div class="tech-panel-head"><h3>Fréquence mensuelle</h3></div><div id="techTypeChart"></div></article></div>
+        <details class="tech-nested"><summary>Dictionnaire des champs et fréquence de présence</summary><div id="techFields"></div></details>
+        <div id="techDetails" class="tech-grid"></div>
+      </details>
+    </section>
+
+    <section id="mode-emploi" class="help-section"><span class="eyebrow">MODE D'EMPLOI</span><h2>Deux archives possibles, zéro serveur.</h2><div class="help-grid"><div><strong>01. Demande ton export</strong><p>Dans les paramètres de confidentialité de Spotify, demande l'« Historique d'écoute étendu ». L'export classique est également accepté, avec moins de détails.</p></div><div><strong>02. Importe le ZIP</strong><p>Choisis ton ZIP musical, ton ZIP technique, ou les deux dans les cases prévues. Pas besoin de décompresser.</p></div><div><strong>03. Explore librement</strong><p>Tous les calculs sont réalisés sur ton appareil. Le contenu original, notamment les adresses IP ou appareils, n'est ni affiché, ni sauvegardé, ni envoyé.</p></div></div></section>
     <footer class="footer"><span>LISTENING ATLAS · 100 % statique, pour GitHub Pages</span><span>Non affilié à Spotify · Les durées correspondent aux lectures enregistrées, même incomplètes.</span></footer>
   </main>
 </body>
