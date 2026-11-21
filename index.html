@@ -10,11 +10,13 @@
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="advanced.css">
   <link rel="stylesheet" href="technical.css">
+  <link rel="stylesheet" href="account.css">
   <script src="vendor/jszip.min.js" defer></script>
   <script src="app.js" defer></script>
   <script src="tracks.js" defer></script>
   <script src="advanced.js" defer></script>
   <script src="technical.js" defer></script>
+  <script src="account.js" defer></script>
   <script src="import-manager.js" defer></script>
 </head>
 <body>
@@ -27,7 +29,7 @@
     <section class="hero" aria-labelledby="heroTitle">
       <div class="eyebrow"><span class="spark">✳</span> TON HISTOIRE MUSICALE, SANS WRAPPED</div>
       <h1 id="heroTitle">Chaque écoute<br><em>raconte quelque chose.</em></h1>
-      <p>Importe ton historique d’écoute, tes journaux techniques, ou les deux : une analyse complète de ta musique et du fonctionnement de Spotify, sans envoyer tes archives sur un serveur.</p>
+      <p>Importe ton historique d’écoute, tes journaux techniques et les données du compte, séparément ou ensemble : chaque module fonctionne indépendamment, entièrement en local.</p>
       <div class="import-grid" aria-label="Importer les archives Spotify">
         <div class="import-card">
           <div class="import-card-title"><span class="import-count">01</span><h2>Historique d’écoute</h2></div>
@@ -52,8 +54,19 @@
           <div id="techProgress" class="upload-status" role="status" aria-live="polite">En attente d’un ZIP technique.</div>
           <div class="tech-progress-track"><div id="techProgressBar"></div></div>
         </div>
+        <div class="import-card">
+          <div class="import-card-title"><span class="import-count">03</span><h2>Données du compte</h2></div>
+          <div id="accountUploadZone" class="upload-zone import-zone" role="button" tabindex="0" aria-label="Choisir l'archive ZIP du compte Spotify">
+            <div class="upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 22v-2a8 8 0 0 1 16 0v2"/></svg></div>
+            <div class="upload-text"><strong>Choisir le ZIP du compte</strong><span>Spotify Account Data</span></div>
+          </div>
+          <input id="accountFileInput" type="file" accept=".zip,application/zip" hidden aria-label="Archive des données du compte Spotify">
+          <span class="import-file" id="accountSelected">Aucune archive sélectionnée</span>
+          <p>Playlists, bibliothèque, Wrapped, Sound Capsule et données privées protégées.</p>
+          <div id="accountProgress" class="upload-status" role="status" aria-live="polite">En attente d’un ZIP du compte.</div>
+        </div>
       </div>
-      <div class="import-submit"><button id="runAnalysis" class="button button-primary" type="button" disabled>▶ Lancer l’analyse</button><span id="importNotice" role="status" aria-live="polite">Sélectionne une archive ou les deux. Aucune analyse n’est lancée avant ton clic.</span></div>
+      <div class="import-submit"><button id="runAnalysis" class="button button-primary" type="button" disabled>▶ Lancer l’analyse</button><span id="importNotice" role="status" aria-live="polite">Sélectionne une, deux ou trois archives. L’analyse démarre uniquement après ton clic.</span></div>
       <p class="hero-note">Aucun compte à connecter. Pas d'API, pas de backend, pas de cookies : le ZIP reste dans ton navigateur, et disparaît lorsque tu fermes la page.</p>
     </section>
     <section id="emptyState" class="empty-state" aria-label="Fonctionnalités disponibles">
@@ -73,6 +86,7 @@
         <a href="#explorateur" class="nav-link">Explorateur</a>
         <a href="#analyses-avancees" class="nav-link">Analyses avancées</a>
         <a href="#techDashboard" id="techMusicNavLink" class="nav-link" hidden>Diagnostic technique</a>
+        <a href="#accountDashboard" id="accountMusicNavLink" class="nav-link" hidden>Données du compte</a>
       </nav>
 
       <section id="vue-ensemble" class="section">
@@ -229,7 +243,34 @@
       </details>
     </section>
 
-    <section id="mode-emploi" class="help-section"><span class="eyebrow">MODE D'EMPLOI</span><h2>Deux archives possibles, zéro serveur.</h2><div class="help-grid"><div><strong>01. Demande ton export</strong><p>Dans les paramètres de confidentialité de Spotify, demande l'« Historique d'écoute étendu ». L'export classique est également accepté, avec moins de détails.</p></div><div><strong>02. Importe le ZIP</strong><p>Choisis ton ZIP musical, ton ZIP technique, ou les deux dans les cases prévues. Pas besoin de décompresser.</p></div><div><strong>03. Explore librement</strong><p>Tous les calculs sont réalisés sur ton appareil. Le contenu original, notamment les adresses IP ou appareils, n'est ni affiché, ni sauvegardé, ni envoyé.</p></div></div></section>
+
+    <section id="accountDashboard" class="account-section section" hidden aria-labelledby="accountTitle">
+      <div class="account-heading"><div><span class="eyebrow">09 — ARCHIVES DU COMPTE SPOTIFY</span><h2 id="accountTitle">Ta musique, tes collections et ton compte.</h2><p>Playlists, bibliothèque, Spotify Wrapped, Sound Capsule, recherches et informations de compte. Cette section fonctionne aussi sans les deux autres archives.</p></div><label for="accountYear">Période <select id="accountYear"><option value="all">Toutes les années</option></select></label></div>
+      <p class="account-note" id="accountFiles">Aucune archive de compte importée.</p>
+      <div id="accountStats" class="account-metric-grid"></div>
+      <nav class="account-nav" aria-label="Rubriques des données de compte"><a href="#account-playlists">Playlists</a><a href="#account-library">Bibliothèque</a><a href="#account-wrapped">Wrapped</a><a href="#account-capsule">Sound Capsule</a><a href="#account-streaming">Écoutes du compte</a><a href="#account-personal">Informations privées</a></nav>
+
+      <details id="account-playlists" class="account-fold" open><summary>Playlists et modifications <small>Évolution, historique, répartition et titres</small></summary><div class="account-fold-body">
+        <p class="account-note" id="accountPlaylistInfo"></p>
+        <div class="account-grid"><article class="account-panel"><h4>Modifications au fil des mois</h4><div class="account-chart" id="accountPlaylistChart"></div><p class="account-note">Ce sont les entrées de l’historique des playlists, et non un compteur fiable d’ajouts.</p></article><article class="account-panel"><h4>Opérations historiques</h4><div id="accountPlaylistOperations"></div></article><article class="account-panel"><h4>Répartition par taille de playlist</h4><div id="accountPlaylistSizes"></div></article></div>
+        <div class="account-panel"><h4>Explorer une playlist</h4><div class="account-filter"><label>Recherche <input id="accountPlaylistQuery" type="search" placeholder="Nom de playlist…"></label><label>Playlist <select id="accountPlaylistSelect"></select></label><small id="accountPlaylistSearchCount"></small></div><div id="accountPlaylistDetail"></div></div>
+      </div></details>
+
+      <details id="account-library" class="account-fold" open><summary>Bibliothèque enregistrée <small>Titres, artistes, albums et correspondances</small></summary><div class="account-fold-body">
+        <div class="account-grid"><article class="account-panel"><h4>Explorer les favoris</h4><div class="account-filter"><label>Catégorie <select id="accountLibraryType"></select></label><label>Filtrer <input id="accountLibraryQuery" type="search" placeholder="Nom d’artiste ou de morceau…"></label><small id="accountLibraryCount"></small></div><div class="account-scroll" id="accountLibraryResults"></div><p class="account-note" id="accountLibraryMore"></p></article><article class="account-panel"><h4>Artistes les plus présents dans les titres sauvegardés</h4><div id="accountLibraryArtists"></div></article></div>
+        <div class="account-panel"><h4>Favoris comparés à l’historique d’écoute</h4><div id="accountCross"></div></div>
+      </div></details>
+
+      <details id="account-wrapped" class="account-fold" open><summary>Spotify Wrapped 2025 <small>Genres, BPM, top et chiffres officiels</small></summary><div class="account-fold-body"><div id="accountWrappedMetrics" class="account-metric-grid"></div><div id="accountWrapped"></div><article class="account-panel"><h4>Indicateur chronologique de la course Wrapped</h4><div class="account-chart" id="accountWrappedArtistRace"></div><p class="account-note" id="accountWrappedRaceNote"></p></article></div></details>
+
+      <details id="account-capsule" class="account-fold"><summary>Your Sound Capsule <small>Bilans périodiques, découvertes et faits marquants</small></summary><div class="account-fold-body"><div class="account-grid"><article class="account-panel"><h4>Minutes Spotify indiquées dans les bilans</h4><div class="account-chart" id="accountCapsuleTime"></div></article><article class="account-panel"><h4>Lectures signalées dans les bilans</h4><div class="account-chart" id="accountCapsuleStreams"></div></article><article class="account-panel"><h4>Types de faits marquants</h4><div id="accountCapsuleHighlights"></div></article></div><div class="account-panel"><h4>Un bilan en détail</h4><div class="account-filter"><label>Choisir une date <select id="accountCapsuleSelect"></select></label></div><div id="accountCapsuleDetails"></div></div></div></details>
+
+      <details id="account-streaming" class="account-fold"><summary>Écoutes et autres traces de compte <small>Écoutes non fusionnées, Marquee et recherches agrégées</small></summary><div class="account-fold-body"><div id="accountStreamingSummary" class="account-metric-grid"></div><article class="account-panel"><h4>Événements musicaux du fichier StreamingHistory du compte</h4><div class="account-chart" id="accountStreamingChart"></div><p class="account-note" id="accountStreamingNotice"></p></article><div id="accountOtherStats" class="account-metric-grid"></div><div class="account-grid"><article class="account-panel"><h4>Segments Marquee</h4><div id="accountMarquee"></div></article><article class="account-panel"><h4>Fréquence des recherches (sans les termes)</h4><div class="account-chart" id="accountSearchTrend"></div><div id="accountSearchPlatforms"></div></article></div></div></details>
+
+      <details id="account-personal" class="account-fold"><summary>Informations personnelles censurées <small>Révélation manuelle, jamais persistante</small></summary><div class="account-fold-body"><p class="account-private-warning">Informations potentiellement privées : profil, recherches, inférences publicitaires et messages. Vérifie que personne ne regarde ton écran avant de les révéler.</p><div class="account-private-actions"><button id="accountPrivateToggle" type="button" class="button button-subtle" aria-expanded="false" aria-controls="accountPrivateContent">◉ Révéler mes informations</button><small>Automatiquement masquées quand tu quittes l’onglet.</small></div><div class="account-private-curtain" id="accountPrivateCurtain"><div class="account-curtain-blur" aria-hidden="true"></div><strong>Contenu sensible — masqué</strong><p>Comme un contenu flouté sur un réseau social. Les informations réelles ne sont pas insérées dans cette zone avant ton clic.</p></div><div id="accountPrivateContent" hidden></div></details>
+    </section>
+
+    <section id="mode-emploi" class="help-section"><span class="eyebrow">MODE D'EMPLOI</span><h2>Trois archives facultatives, zéro serveur.</h2><div class="help-grid"><div><strong>01. Demande ton export</strong><p>Dans les paramètres de confidentialité de Spotify, demande l'« Historique d'écoute étendu ». L'export classique est également accepté, avec moins de détails.</p></div><div><strong>02. Importe le ZIP</strong><p>Choisis un, deux ou trois ZIP : historique musical, journaux techniques et données du compte. Pas besoin de décompresser.</p></div><div><strong>03. Explore librement</strong><p>Tous les calculs sont réalisés sur ton appareil. Les ZIP ne sont jamais envoyés ni enregistrés. Les informations de compte sensibles restent censurées par défaut.</p></div></div></section>
     <footer class="footer"><span>LISTENING ATLAS · 100 % statique, pour GitHub Pages</span><span>Non affilié à Spotify · Les durées correspondent aux lectures enregistrées, même incomplètes.</span></footer>
   </main>
 </body>

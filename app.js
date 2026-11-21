@@ -677,7 +677,7 @@
   document.addEventListener('dragenter',e=>{if([...e.dataTransfer?.types||[]].includes('Files')){dragLevel++;$('uploadZone').classList.add('drag-over');}});
   document.addEventListener('dragleave',()=>{dragLevel--;if(dragLevel<=0){dragLevel=0;$('uploadZone').classList.remove('drag-over');}});
   document.addEventListener('dragover',e=>{if([...e.dataTransfer?.types||[]].includes('Files'))e.preventDefault();});
-  document.addEventListener('drop',e=>{e.preventDefault();dragLevel=0;$('uploadZone').classList.remove('drag-over');if(e.dataTransfer?.files?.length){const tech=Boolean(e.target.closest('#techUploadZone'));window.ImportManager?.[tech?'selectTech':'selectMusic'](e.dataTransfer.files[0]);}});
+  document.addEventListener('drop',e=>{e.preventDefault();dragLevel=0;$('uploadZone').classList.remove('drag-over');if(e.dataTransfer?.files?.length){const kind=e.target.closest('#accountUploadZone')?'selectAccount':e.target.closest('#techUploadZone')?'selectTech':'selectMusic';window.ImportManager?.[kind](e.dataTransfer.files[0]);}});
   $('yearSelect').addEventListener('change',e=>{state.year=e.target.value;renderDashboard();});
   $('yearsChart').addEventListener('click',e=>{const bar=e.target.closest('[data-year]');if(bar){state.year=bar.dataset.year;renderDashboard();}});
   $('metricToggle').addEventListener('click',e=>{const button=e.target.closest('[data-metric]');if(button){state.metric=button.dataset.metric;renderDashboard();}});
@@ -715,5 +715,5 @@
   });
   $('seekRace').addEventListener('input',e=>{stopRace();state.raceDay=Number(e.target.value)||0;renderRace();});
 
-  window.MusicStudio={importFile:importZip,hasModel:()=>Boolean(state.model)};
+  window.MusicStudio={importFile:importZip,hasModel:()=>Boolean(state.model),getModel:()=>state.model};
 })();

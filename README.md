@@ -112,3 +112,20 @@ L'Observatoire technique propose :
 **Confidentialité :** les fichiers bruts ne quittent jamais l'appareil. Le parser technique ne conserve que des agrégats et des informations autorisées, sans identifiants d'appareil, adresses IP, MAC, adresses mail, jetons, URL ni identifiants de comptes tiers. Le code source public **ne contient aucune archive personnelle**. Les ZIP restent nécessaires après chaque rechargement.
 
 **Compatibilité :** fichier `index.html` à la racine de GitHub Pages ; JavaScript vanilla, aucune API Spotify, aucune installation npm ; JSZip déjà embarqué. `technical.js`, `technical.css` et `import-manager.js` sont obligatoires en plus des fichiers existants.
+
+
+## Troisième import : données du compte, Wrapped et espace privé
+
+L'import principal offre maintenant **trois emplacements ZIP indépendants**. L'archive **Spotify Account Data** peut être importée seule, ou avec l'historique d'écoute et les journaux techniques. Chaque module s'affiche uniquement lorsqu'il dispose de données valides. Le bouton « Lancer l’analyse » déclenche le traitement local des archives sélectionnées ; rien n'est envoyé sur un serveur.
+
+La rubrique « Données du compte » apparaît **tout en bas de page**, après l'observatoire technique, et contient :
+
+- **Playlists** : nombre de playlists et de morceaux, taille des playlists, événements d'historique par mois et types d'opérations, explorateur filtrable d'une playlist ; ces événements ne sont pas toujours des ajouts.
+- **Bibliothèque** : morceaux, albums, artistes, podcasts, recherche et classement des artistes les plus sauvegardés. Si l'historique d'écoute est présent, comparaison des morceaux enregistrés et écoutés par URI Spotify, avec limites de correspondance clairement indiquées.
+- **Wrapped 2025** : statistiques fournies directement par Spotify, dont durées, découvertes, BPM pondéré, genres et classements. Les identifiants de genres `spotify:concept:…` n'ont pas de libellé local dans le ZIP : ils sont indiqués comme non résolus, sans leur inventer de noms.
+- **Sound Capsule** : bilans par date, courbes de minutes et de lectures, événements marquants par catégorie, listes de titres et d'artistes. Les bilans ne se substituent pas à un historique complet.
+- **Écoutes de l'export de compte** : activités dénombrées sans addition aux statistiques musicales (car elles recouvrent partiellement le premier ZIP).
+- **Recherche et Marquee** : statistiques globales anonymisées, nombre et évolution des recherches et catégories de segments.
+- **Zone sensible censurée** : les recherches **textuelles**, informations du profil, inférences publicitaires et messages de l'archive du compte sont **absents du DOM** jusqu'à une action explicite « Révéler mes informations ». « Recensurer » vide le contenu affiché, et quitter l'onglet le masque automatiquement. Les identifiants techniques et publicitaires ne sont jamais révélés. Ne révèle pas cette zone devant une personne non autorisée. Ce masquage est une protection **visuelle et ergonomique**, pas du chiffrement.
+
+L'application n'emploie toujours **aucune API tierce**, aucun stockage persistant et aucune requête pour les fichiers importés. Les scripts `account.js` et `account.css` sont nécessaires. Les ZIP personnels ne doivent **jamais** être ajoutés au dépôt GitHub public.
